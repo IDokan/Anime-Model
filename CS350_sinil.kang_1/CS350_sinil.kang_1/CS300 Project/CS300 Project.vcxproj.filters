@@ -1,0 +1,352 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="1.0-SimpleScene">
+      <UniqueIdentifier>{27c2fef1-18bf-4d45-9450-2b29b1f04590}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{70504ec0-e416-4202-bf73-bd241348c030}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\shaders">
+      <UniqueIdentifier>{3e8b3008-7945-4cf9-b54f-e1cbf8e9dee3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assignment1">
+      <UniqueIdentifier>{44ac2f8f-2c09-4fe5-8d96-df288d8584f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="myGUI">
+      <UniqueIdentifier>{11b988cd-313a-4ebe-af20-022cce9b4004}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\Meshes">
+      <UniqueIdentifier>{93b9b202-be1b-4273-a9b6-f7cfc50dbd8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\Meshes\models">
+      <UniqueIdentifier>{644b3b1d-5c76-4a68-9178-898516100ca5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\Meshes\MyMeshes">
+      <UniqueIdentifier>{2f80a741-309b-4561-82e7-2d7f623bb90a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\Cameras">
+      <UniqueIdentifier>{4b6e28a1-e00f-47f9-933c-84882e511ab8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\Lights">
+      <UniqueIdentifier>{1d13792c-f025-4485-bfe1-b5d4138e91bb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\ppms">
+      <UniqueIdentifier>{c4b35545-2fa0-402b-aa5b-efeaf102f016}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\Textures">
+      <UniqueIdentifier>{037fcf59-9ac4-4271-9bfb-a82741a68474}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\FBO">
+      <UniqueIdentifier>{8049c590-e370-4eb0-a38d-b8bf50844f4c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\shaders\HybridRendering">
+      <UniqueIdentifier>{df804ce2-0ab6-4ab3-b8f0-57da293698e7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\1.0 - Simple Scene\GLApplication.cpp">
+      <Filter>1.0-SimpleScene</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Scene.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\shader.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Assignment1\as1Scene.cpp">
+      <Filter>Assignment1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Meshes\Mesh.cpp">
+      <Filter>Common\Meshes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Meshes\MeshGenerator.cpp">
+      <Filter>Common\Meshes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Meshes\MyObjReader.cpp">
+      <Filter>Common\Meshes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Input.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Meshes\MyMeshes\LineMesh.cpp">
+      <Filter>Common\Meshes\MyMeshes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Meshes\MyMeshes\ObjectMesh.cpp">
+      <Filter>Common\Meshes\MyMeshes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Meshes\MyMeshes\MyMesh.cpp">
+      <Filter>Common\Meshes\MyMeshes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Cameras\Camera.cpp">
+      <Filter>Common\Cameras</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Cameras\Projection.cpp">
+      <Filter>Common\Cameras</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Cameras\Affine.cpp">
+      <Filter>Common\Cameras</Filter>
+    </ClCompile>
+    <ClCompile Include="..\myGUI\imgui_impl_glfw.cpp">
+      <Filter>myGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\myGUI\imgui_impl_opengl3.cpp">
+      <Filter>myGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\myGUI\myImGUI.cpp">
+      <Filter>myGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\myGUI\imgui.cpp">
+      <Filter>myGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\myGUI\imgui_demo.cpp">
+      <Filter>myGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\myGUI\imgui_draw.cpp">
+      <Filter>myGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\myGUI\imgui_tables.cpp">
+      <Filter>myGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\myGUI\imgui_widgets.cpp">
+      <Filter>myGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Lights\Light.cpp">
+      <Filter>Common\Lights</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Lights\LightManager.cpp">
+      <Filter>Common\Lights</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\ppms\ppmReader.cpp">
+      <Filter>Common\ppms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Textures\Texture.cpp">
+      <Filter>Common\Textures</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Textures\TextureManager.cpp">
+      <Filter>Common\Textures</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\FBO\FBO.cpp">
+      <Filter>Common\FBO</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Meshes\models\Model.cpp">
+      <Filter>Common\Meshes\models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Meshes\models\AssimpMesh.cpp">
+      <Filter>Common\Meshes\models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\shaders\AssimpShader.cpp">
+      <Filter>Common\shaders</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Common\shader.hpp">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Scene.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Assignment1\as1Scene.h">
+      <Filter>Assignment1</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Input.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Meshes\Mesh.h">
+      <Filter>Common\Meshes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Meshes\MeshGenerator.h">
+      <Filter>Common\Meshes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Meshes\MyObjReader.h">
+      <Filter>Common\Meshes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Meshes\MyMeshes\LineMesh.h">
+      <Filter>Common\Meshes\MyMeshes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Meshes\MyMeshes\ObjectMesh.h">
+      <Filter>Common\Meshes\MyMeshes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Meshes\MyMeshes\MyMesh.h">
+      <Filter>Common\Meshes\MyMeshes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Cameras\Camera.h">
+      <Filter>Common\Cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Cameras\Projection.h">
+      <Filter>Common\Cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Cameras\Affine.h">
+      <Filter>Common\Cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="..\myGUI\imgui_impl_glfw.h">
+      <Filter>myGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\myGUI\imgui_impl_opengl3.h">
+      <Filter>myGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\myGUI\myImGUI.h">
+      <Filter>myGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\myGUI\imconfig.h">
+      <Filter>myGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\myGUI\imgui.h">
+      <Filter>myGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\myGUI\imgui_impl_opengl3_loader.h">
+      <Filter>myGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\myGUI\imgui_internal.h">
+      <Filter>myGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\myGUI\imstb_rectpack.h">
+      <Filter>myGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\myGUI\imstb_textedit.h">
+      <Filter>myGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\myGUI\imstb_truetype.h">
+      <Filter>myGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Lights\Light.h">
+      <Filter>Common\Lights</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Lights\LightManager.h">
+      <Filter>Common\Lights</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\ppms\ppmReader.h">
+      <Filter>Common\ppms</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Textures\Texture.h">
+      <Filter>Common\Textures</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Textures\TextureManager.h">
+      <Filter>Common\Textures</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\FBO\FBO.h">
+      <Filter>Common\FBO</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Meshes\models\Model.h">
+      <Filter>Common\Meshes\models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Meshes\models\AssimpMesh.h">
+      <Filter>Common\Meshes\models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\shaders\AssimpShader.h">
+      <Filter>Common\shaders</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Common\shaders\GUIShader.frag">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\GUIShader.vert">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\normalDisplayShader.frag">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\normalDisplayShader.vert">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\As1DiffuseShader.frag">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\As1DiffuseShader.vert">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\myGUI\.editorconfig">
+      <Filter>myGUI</Filter>
+    </None>
+    <None Include="..\myGUI\.gitattributes">
+      <Filter>myGUI</Filter>
+    </None>
+    <None Include="..\myGUI\.gitignore">
+      <Filter>myGUI</Filter>
+    </None>
+    <None Include="..\Common\shaders\As2PhongLighting.frag">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\As2PhongLighting.vert">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\As2PhongShading.frag">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\As2PhongShading.vert">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\ppms\black.ppm">
+      <Filter>Common\ppms</Filter>
+    </None>
+    <None Include="..\Common\ppms\grid.ppm">
+      <Filter>Common\ppms</Filter>
+    </None>
+    <None Include="..\Common\ppms\metal_roof_diff_512x512.ppm">
+      <Filter>Common\ppms</Filter>
+    </None>
+    <None Include="..\Common\ppms\metal_roof_spec_512x512.ppm">
+      <Filter>Common\ppms</Filter>
+    </None>
+    <None Include="..\Common\shaders\As2BlinnShading.frag">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\As2BlinnShading.vert">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\skyboxShader.frag">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\skyboxShader.vert">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\RenderSkyboxToFBOShader.frag">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\RenderSkyboxToFBOShader.vert">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\CheckRenderedTextureByFBO.frag">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\CheckRenderedTextureByFBO.vert">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\As3EnvironmentalMapping.frag">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\As3EnvironmentalMapping.vert">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\HybridRendering\As4HybridPhong.frag">
+      <Filter>Common\shaders\HybridRendering</Filter>
+    </None>
+    <None Include="..\Common\shaders\HybridRendering\As4HybridPhong.vert">
+      <Filter>Common\shaders\HybridRendering</Filter>
+    </None>
+    <None Include="..\Common\shaders\HybridRendering\As4FirstPassShader.frag">
+      <Filter>Common\shaders\HybridRendering</Filter>
+    </None>
+    <None Include="..\Common\shaders\HybridRendering\As4FirstPassShader.vert">
+      <Filter>Common\shaders\HybridRendering</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\myGUI\LICENSE.txt">
+      <Filter>myGUI</Filter>
+    </Text>
+  </ItemGroup>
+</Project>
