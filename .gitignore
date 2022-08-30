@@ -33,7 +33,7 @@
 
 \.vs
 \x64
-\ThirdParty\
+\ThirdParty\*
 \myGUI
 *.ppm
 *.bpm
