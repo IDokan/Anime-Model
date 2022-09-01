@@ -63,27 +63,16 @@ private:
 	void DrawVertexNormals();
 	void DrawFaceNormals();
 	void DrawSpheresAndOrbit(glm::vec3 position, glm::vec3 rotateAxis, float rotateScale = 1.f, float InitRotate = 0.f, glm::vec3 diffuseColor = glm::vec3(0.f, 0.f, 0.f), glm::mat4 matrix = glm::mat4());
-	void DrawToFBO();
 
 	void SetupCamera();
 	void MoveViewOfCamera(int x, int y);
 	void MovePositionOfCamera(float speed, short moveDirection);
 	void UpdateCamera();
 
-	void UpdateGUIShader();
-
 	void InitLights();
 	void UpdateLights();
 
-	void ReloadShader();
 	void ReloadMesh();
-
-	void HybridRendering();
-	void RenderDeferredObjects();
-	void CopyDepthInfo();
-	void RenderDebugObjects();
-
-	void DrawGBufferRenderTargets();
 
 private:
 	const GLuint vertexAttribute;
@@ -111,10 +100,7 @@ private:
 	LineMesh* sphereOrbit;
 
 	// Hybrid rendering
-	GLuint fboCheckShader;
-	GLuint hybridFirstPass;
-	AssimpShader* assimpHybridFirstPass;
-	GLuint hybridPhong;
+	AssimpShader* mainModelShader;
 
 
 	float angleOfRotate;
@@ -130,8 +116,6 @@ private:
 
 	bool vertexNormalFlag;
 	bool faceNormalFlag;
-	bool gbufferRenderTargetFlag;
-	bool depthWriteFlag;
 
 	glm::vec2 handlerDisplacement;
 
@@ -178,18 +162,11 @@ private:
 	TextureManager textureManager;
 
 
-	// 0 - Phong Lighting
-	// 1 - Phong Shading
-	// 2 - Blinn Shading
-	int currentShader;
-
 	bool shouldReload;
 	char buf[64];
 	bool flip;
 	Mesh::UVType uvImportType;
 	bool calculateUVonCPU;
-
-	bool reloadShader;
 
 	MyObjReader* myReader;
 

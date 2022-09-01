@@ -17,10 +17,11 @@ uniform vec3 diffuseColor;
 
 in vec3 fragPos;
 in vec3 vertexNormal;
+in vec3 viewVector;
 
 out vec3 color;
 
 void main()
 {
-	color = diffuseColor;
+	color = diffuseColor * dot(vertexNormal, viewVector);
 }

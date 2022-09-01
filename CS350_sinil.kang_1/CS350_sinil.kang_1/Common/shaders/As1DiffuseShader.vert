@@ -15,16 +15,19 @@
 
 uniform mat4 objToWorld;
 uniform mat4 worldToNDC;
+uniform vec3 camera;
 
 layout(location = 0) in vec3 objPosition;
 layout(location = 1) in vec3 objNormal;
 
 out vec3 fragPos;
 out vec3 vertexNormal;
+out vec3 viewVector;
 
 void main()
 {
-	vertexNormal = mat3(transpose(inverse(objToWorld))) * objNormal;
+	vertexNormal = normalize(mat3(transpose(inverse(objToWorld))) * objNormal);
 	fragPos = vec3(objToWorld * vec4(objPosition, 1.0f));
+	viewVector = normalize(camera - fragPos);
 	gl_Position = worldToNDC * objToWorld * vec4(objPosition, 1.0f);
 }

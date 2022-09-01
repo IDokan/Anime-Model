@@ -160,7 +160,6 @@ for(int i = 0; i < lightSize; i++)
 {
 color = color + CalculateIntensityFinal(data.item[i]);
 }
-color = color;
 
 
 

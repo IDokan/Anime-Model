@@ -35,7 +35,7 @@ AS1Scene::AS1Scene(int width, int height)
 	:Scene(width, height), vertexAttribute(0), normalAttribute(1), numOfFloatVertex(3),
 	angleOfRotate(0), vertexNormalFlag(false), faceNormalFlag(false),
 	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), shouldReload(false), buf("../Common/Meshes/models/bunny.obj"), flip(false), uvImportType(Mesh::UVType::CUBE_MAPPED_UV),
-	calculateUVonCPU(true), reloadShader(false), gbufferRenderTargetFlag(false), depthWriteFlag(true)
+	calculateUVonCPU(true)
 {
 	sphereMesh = new Mesh();
 	centralMesh = new Mesh();
@@ -82,8 +82,6 @@ AS1Scene::AS1Scene(int width, int height)
 	intensityFog = glm::vec3(0.8f);
 	attenuationConstants = glm::vec3(1.f, 0.5f, 0.25f);
 
-	currentShader = 0;
-
 	myReader = new MyObjReader();
 }
 
@@ -97,8 +95,7 @@ int AS1Scene::Init()
 	MeshGenerator::GenerateSphereMesh(*sphereMesh, 0.05f, 16);
 	MeshGenerator::GenerateOrbitMesh(*orbitMesh, 1.f, 32);
 
-	myReader->ReadObjFile("../Common/Meshes/models/bunny.obj", centralMesh, false, Mesh::UVType::CUBE_MAPPED_UV);
-	myReader->ReadObjFile("../Common/Meshes/models/quad.obj", floorMesh, true, Mesh::UVType::CUBE_MAPPED_UV);
+	myReader->ReadObjFile("../Common/Meshes/models/quad.obj", floorMesh, true);
 
 	model = new Model("../Common/Meshes/models/Armadillo.ply");
 #endif
@@ -130,20 +127,12 @@ void AS1Scene::LoadAllShaders()
 	normalDisplayProgramID = LoadShaders("../Common/shaders/normalDisplayShader.vert",
 		"../Common/shaders/normalDisplayShader.frag");
 
-	fboCheckShader = LoadShaders("../Common/shaders/CheckRenderedTextureByFBO.vert",
-		"../Common/shaders/CheckRenderedTextureByFBO.frag");
-
-	hybridFirstPass = LoadShaders("../Common/shaders/HybridRendering/As4FirstPassShader.vert",
-		"../Common/shaders/HybridRendering/As4FirstPassShader.frag");
-	assimpHybridFirstPass = new AssimpShader(hybridFirstPass);
-
-	hybridPhong = LoadShaders("../Common/shaders/HybridRendering/As4HybridPhong.vert",
-		"../Common/shaders/HybridRendering/As4HybridPhong.frag");
+	//
+	mainModelShader = new AssimpShader(programID);
 }
 
 int AS1Scene::preRender()
 {
-	ReloadShader();
 	ReloadMesh();
 
 	glClearColor(intensityFog.x, intensityFog.y, intensityFog.z, 1.f);
@@ -184,7 +173,29 @@ int AS1Scene::preRender()
 
 int AS1Scene::Render()
 {
-	HybridRendering();
+	floorObjMesh->SetShader(programID);
+	floorObjMesh->PrepareDrawing();
+
+	floorObjMesh->SendUniformFloatMatrix4("objToWorld", &floorMatrix[0][0]);
+	floorObjMesh->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
+	Point cameraP = camera.Eye();
+	glm::vec3 blue(0.f, 0.f, 1.f);
+	floorObjMesh->SendUniformFloat3("diffuseColor", &blue.x);
+	floorObjMesh->SendUniformFloat3("camera", &cameraP.x);
+
+
+
+	floorObjMesh->Draw(floorMesh->getIndexBufferSize());
+
+	////////////////////////////////////////////////////////////////////////////////////// Draw ends\
+
+	mainModelShader->Use();
+	mainModelShader->SendUniformFloatMatrix4("objToWorld", &modelMatrix[0][0]);
+	mainModelShader->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
+	glm::vec3 red(1.f, 0.f, 0.f);
+	mainModelShader->SendUniformFloat3("diffuseColor", &red.x);
+	
+	model->Draw(phongShading);
 
 	return 0;
 }
@@ -201,9 +212,6 @@ void AS1Scene::CleanUp()
 	glDeleteProgram(programID);
 	glDeleteProgram(phongShading);
 	glDeleteProgram(normalDisplayProgramID);
-	glDeleteProgram(fboCheckShader);
-	glDeleteProgram(hybridFirstPass);
-	glDeleteProgram(hybridPhong);
 
 
 	MyImGUI::ClearImGUI();
@@ -222,7 +230,7 @@ void AS1Scene::CleanUp()
 
 	delete myReader;
 
-	delete assimpHybridFirstPass;
+	delete mainModelShader;
 }
 
 void AS1Scene::SetupNanoGUI(GLFWwindow* window)
@@ -233,7 +241,6 @@ void AS1Scene::SetupNanoGUI(GLFWwindow* window)
 void AS1Scene::UpdateGUI()
 {
 	MyImGUI::UpdateImGUI();
-	UpdateGUIShader();
 }
 
 void AS1Scene::InitGraphics()
@@ -282,19 +289,13 @@ void AS1Scene::AddMembersToGUI()
 {
 	MyImGUI::SetNormalDisplayReferences(&vertexNormalFlag, &faceNormalFlag);
 	MyImGUI::SetMaterialReferences(&ambient.x, &diffuse.x, &specular.x, reinterpret_cast<float*>(&intensityEmissive));
-	MyImGUI::SetLightReferences(&lightManager);
 	MyImGUI::SetEnvironmentReferences(reinterpret_cast<float*>(&intensityFog), reinterpret_cast<float*>(&attenuationConstants));
-	MyImGUI::SetShaderReferences(&currentShader, &reloadShader);
 	MyImGUI::SetCentralMesh(centralMesh, mainObjMesh, &shouldReload, buf, &flip, &uvImportType, &calculateUVonCPU);
-	MyImGUI::SetHybridDebugging(&gbufferRenderTargetFlag, &depthWriteFlag);
 }
 void AS1Scene::DrawMesh()
 {
 	UpdateLights();
 
-	 
-	 
-	floorObjMesh->SetShader(hybridPhong);
 	floorObjMesh->PrepareDrawing();
 
 	textureManager.ActivateTexture(floorObjMesh->GetShader(), "diffuseTexture");
@@ -327,7 +328,7 @@ void AS1Scene::DrawMesh()
 	floorObjMesh->SendUniformBlockVector3s("Block", lightManager.GetLightUniformDataSize(),
 		lightManager.GetLightUniformBlockNames(), lightManager.GetLightUniformBlockData());
 
-	floorObjMesh->Draw(floorMesh->getIndexBufferSize());
+	// floorObjMesh->Draw(floorMesh->getIndexBufferSize());
 	// End here..
 }
 
@@ -387,40 +388,6 @@ void AS1Scene::DrawSpheresAndOrbit(glm::vec3 position, glm::vec3 rotateAxis, flo
 	sphereOrbit->SendUniformFloatMatrix4("objToWorld", &orbitMatrix[0][0]);
 	sphereOrbit->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
 	sphereOrbit->Draw(orbitMesh->getVertexBufferSize());
-}
-
-void AS1Scene::DrawToFBO()
-{
-	frameBuffer.ApplyFBO();
-
-	//////////////////////////////////////////////////////////////////////////////////// Draw starts
-	//mainObjMesh->SetShader(hybridFirstPass);
-
-	//mainObjMesh->PrepareDrawing();
-
-	//mainObjMesh->SendUniformFloatMatrix4("objToWorld", &centralMatrix[0][0]);
-	//mainObjMesh->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
-
-	//mainObjMesh->Draw(centralMesh->getIndexBufferSize());
-
-	floorObjMesh->SetShader(hybridFirstPass);
-	floorObjMesh->PrepareDrawing();
-
-	floorObjMesh->SendUniformFloatMatrix4("objToWorld", &floorMatrix[0][0]);
-	floorObjMesh->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
-
-	floorObjMesh->Draw(floorMesh->getIndexBufferSize());
-
-	////////////////////////////////////////////////////////////////////////////////////// Draw ends
-
-	assimpHybridFirstPass->Use();
-	assimpHybridFirstPass->SendUniformFloatMatrix4("objToWorld", &modelMatrix[0][0]);
-	assimpHybridFirstPass->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
-	model->Draw(hybridFirstPass);
-
-	
-
-	frameBuffer.RestoreDefaultFrameBuffer();
 }
 
 void AS1Scene::SetupCamera()
@@ -547,18 +514,6 @@ void AS1Scene::UpdateCamera()
 	}
 }
 
-void AS1Scene::UpdateGUIShader()
-{
-	switch (currentShader)
-	{
-	case 0:
-		mainObjMesh->SetShader(phongShading);
-		break;
-	default:
-		break;
-	}
-}
-
 void AS1Scene::InitLights()
 {
 	static const glm::vec3 initTranslations[16] = {
@@ -622,16 +577,6 @@ void AS1Scene::UpdateLights()
 	}
 }
 
-void AS1Scene::ReloadShader()
-{
-	if (reloadShader)
-	{
-		reloadShader = false;
-		
-		LoadAllShaders();
-	}
-}
-
 void AS1Scene::ReloadMesh()
 {
 	if (shouldReload)
@@ -649,95 +594,4 @@ void AS1Scene::ReloadMesh()
 		normalMesh->Init(model->GetVertexNormalCount(), model->GetVertexNormalsForDisplay());
 		faceNormalMesh->Init(model->GetFaceNormalCount(), model->GetFaceNormalsForDisplay());
 	}
-}
-
-void AS1Scene::HybridRendering()
-{
-	RenderDeferredObjects();
-
-	CopyDepthInfo();
-
-	RenderDebugObjects();
-}
-
-void AS1Scene::RenderDeferredObjects()
-{
-	// a. Implement the Deferred Shading pipeline for rendering the OBJ files using FBO's (let's call this FBO, FBO1.)
-	// b. First pass: Generate the G-buffer using multiple render targets (Refer CS300 Assignment on Dynamic Reflection & Refraction)
-	// c. The render targets will hold the information to implement Phong Shading in the second (Lighting) pass.
-	// d. Second Pass: Use the render targets from Pass 1 as input textures to the Lighting Pass.
-	//								The Vertex Shader will be a straight pass - through to render a Full Screen Quad (FSQ).
-	//								The Fragment Shader will implement the Phong Shading, 
-	//									but reading the input values for material / environment properties from the textures.
-
-	DrawToFBO();
-
-	
-
-
-	// disable depthwriting for temporarily
-	glDisable(GL_DEPTH_TEST);
-
-	DrawMesh();
-
-	glEnable(GL_DEPTH_TEST);
-}
-
-void AS1Scene::CopyDepthInfo()
-{
-	if (depthWriteFlag == true)
-	{
-		frameBuffer.CopyDepthInfo();
-	}
-}
-
-void AS1Scene::RenderDebugObjects()
-{
-	// a. Now draw the face normal and vertex normal using the Forward Rendering method.
-	//		Essentially, your code to render these objects should be unchanged from CS300.
-	// b. Do not apply Phong Shading to debug draw objects.
-	// c. In future assignments, we will expand our repertoire of "debug" objects to include bounding volumes, trees, and rays.
-
-	UpdateLights();
-
-	if (vertexNormalFlag == true)
-	{
-		DrawVertexNormals();
-	}
-
-	if (faceNormalFlag == true)
-	{
-		DrawFaceNormals();
-	}
-
-	if (gbufferRenderTargetFlag == true)
-	{
-		DrawGBufferRenderTargets();
-	}
-}
-
-void AS1Scene::DrawGBufferRenderTargets()
-{
-	floorObjMesh->SetShader(fboCheckShader);
-	floorObjMesh->PrepareDrawing();
-	textureManager.ActivateTexture(fboCheckShader, "positionBuffer", "tex");
-	floorObjMesh->SendUniformFloatMatrix4("trans", &gbufferRenderTargetsMatrix[0][0][0]);
-	floorObjMesh->Draw(floorMesh->getIndexBufferSize());
-
-
-	floorObjMesh->PrepareDrawing();
-	floorObjMesh->SendUniformFloatMatrix4("trans", &gbufferRenderTargetsMatrix[1][0][0]);
-	textureManager.ActivateTexture(fboCheckShader, "UVBuffer", "tex");
-	floorObjMesh->Draw(floorMesh->getIndexBufferSize());
-
-
-	floorObjMesh->PrepareDrawing();
-	floorObjMesh->SendUniformFloatMatrix4("trans", &gbufferRenderTargetsMatrix[2][0][0]);
-	textureManager.ActivateTexture(fboCheckShader, "normalBuffer", "tex");
-	floorObjMesh->Draw(floorMesh->getIndexBufferSize());
-
-	floorObjMesh->PrepareDrawing();
-	floorObjMesh->SendUniformFloatMatrix4("trans", &gbufferRenderTargetsMatrix[3][0][0]);
-	textureManager.ActivateTexture(fboCheckShader, "depthBuffer", "tex");
-	floorObjMesh->Draw(floorMesh->getIndexBufferSize());
 }
