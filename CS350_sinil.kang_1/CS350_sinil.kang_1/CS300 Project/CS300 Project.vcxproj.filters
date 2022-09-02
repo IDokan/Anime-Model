@@ -52,9 +52,6 @@
     <Filter Include="Common\FBO">
       <UniqueIdentifier>{8049c590-e370-4eb0-a38d-b8bf50844f4c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common\shaders\HybridRendering">
-      <UniqueIdentifier>{df804ce2-0ab6-4ab3-b8f0-57da293698e7}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\1.0 - Simple Scene\GLApplication.cpp">
@@ -250,12 +247,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Common\shaders\GUIShader.frag">
-      <Filter>Common\shaders</Filter>
-    </None>
-    <None Include="..\Common\shaders\GUIShader.vert">
-      <Filter>Common\shaders</Filter>
-    </None>
     <None Include="..\Common\shaders\normalDisplayShader.frag">
       <Filter>Common\shaders</Filter>
     </None>
@@ -277,18 +268,6 @@
     <None Include="..\myGUI\.gitignore">
       <Filter>myGUI</Filter>
     </None>
-    <None Include="..\Common\shaders\As2PhongLighting.frag">
-      <Filter>Common\shaders</Filter>
-    </None>
-    <None Include="..\Common\shaders\As2PhongLighting.vert">
-      <Filter>Common\shaders</Filter>
-    </None>
-    <None Include="..\Common\shaders\As2PhongShading.frag">
-      <Filter>Common\shaders</Filter>
-    </None>
-    <None Include="..\Common\shaders\As2PhongShading.vert">
-      <Filter>Common\shaders</Filter>
-    </None>
     <None Include="..\Common\ppms\black.ppm">
       <Filter>Common\ppms</Filter>
     </None>
@@ -300,48 +279,6 @@
     </None>
     <None Include="..\Common\ppms\metal_roof_spec_512x512.ppm">
       <Filter>Common\ppms</Filter>
-    </None>
-    <None Include="..\Common\shaders\As2BlinnShading.frag">
-      <Filter>Common\shaders</Filter>
-    </None>
-    <None Include="..\Common\shaders\As2BlinnShading.vert">
-      <Filter>Common\shaders</Filter>
-    </None>
-    <None Include="..\Common\shaders\skyboxShader.frag">
-      <Filter>Common\shaders</Filter>
-    </None>
-    <None Include="..\Common\shaders\skyboxShader.vert">
-      <Filter>Common\shaders</Filter>
-    </None>
-    <None Include="..\Common\shaders\RenderSkyboxToFBOShader.frag">
-      <Filter>Common\shaders</Filter>
-    </None>
-    <None Include="..\Common\shaders\RenderSkyboxToFBOShader.vert">
-      <Filter>Common\shaders</Filter>
-    </None>
-    <None Include="..\Common\shaders\CheckRenderedTextureByFBO.frag">
-      <Filter>Common\shaders</Filter>
-    </None>
-    <None Include="..\Common\shaders\CheckRenderedTextureByFBO.vert">
-      <Filter>Common\shaders</Filter>
-    </None>
-    <None Include="..\Common\shaders\As3EnvironmentalMapping.frag">
-      <Filter>Common\shaders</Filter>
-    </None>
-    <None Include="..\Common\shaders\As3EnvironmentalMapping.vert">
-      <Filter>Common\shaders</Filter>
-    </None>
-    <None Include="..\Common\shaders\HybridRendering\As4HybridPhong.frag">
-      <Filter>Common\shaders\HybridRendering</Filter>
-    </None>
-    <None Include="..\Common\shaders\HybridRendering\As4HybridPhong.vert">
-      <Filter>Common\shaders\HybridRendering</Filter>
-    </None>
-    <None Include="..\Common\shaders\HybridRendering\As4FirstPassShader.frag">
-      <Filter>Common\shaders\HybridRendering</Filter>
-    </None>
-    <None Include="..\Common\shaders\HybridRendering\As4FirstPassShader.vert">
-      <Filter>Common\shaders\HybridRendering</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

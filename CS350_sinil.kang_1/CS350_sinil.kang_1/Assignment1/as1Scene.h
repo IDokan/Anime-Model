@@ -59,28 +59,18 @@ private:
 
 	void AddMembersToGUI();
 
-	void DrawMesh();
 	void DrawVertexNormals();
 	void DrawFaceNormals();
-	void DrawSpheresAndOrbit(glm::vec3 position, glm::vec3 rotateAxis, float rotateScale = 1.f, float InitRotate = 0.f, glm::vec3 diffuseColor = glm::vec3(0.f, 0.f, 0.f), glm::mat4 matrix = glm::mat4());
 
 	void SetupCamera();
 	void MoveViewOfCamera(int x, int y);
 	void MovePositionOfCamera(float speed, short moveDirection);
 	void UpdateCamera();
 
-	void InitLights();
-	void UpdateLights();
+	void DrawDebuggingObjects();
 
-	void ReloadMesh();
-
-private:
-	const GLuint vertexAttribute;
-	const GLuint normalAttribute;
-	const int numOfFloatVertex;
 private:
 	Mesh* sphereMesh;
-	Mesh* centralMesh;
 	Mesh* orbitMesh;
 	Mesh* floorMesh;
 
@@ -88,8 +78,6 @@ private:
 
 	// Shaders
 	GLuint programID;
-	GLuint phongShading;
-	ObjectMesh* mainObjMesh;
 	ObjectMesh* spheres;
 	ObjectMesh* floorObjMesh;
 	// Normal Drawing
@@ -102,13 +90,11 @@ private:
 	// Hybrid rendering
 	AssimpShader* mainModelShader;
 
+	glm::vec3 clearColor;
 
 	float angleOfRotate;
-	glm::mat4 centralMatrix;
 	glm::mat4 modelMatrix;
-	glm::mat4 sphereMatrix;
 	glm::mat4 floorMatrix;
-	glm::mat4 gbufferRenderTargetsMatrix[4];
 
 	// GUI members
 	GLFWwindow* displayWindow;
@@ -116,8 +102,6 @@ private:
 
 	bool vertexNormalFlag;
 	bool faceNormalFlag;
-
-	glm::vec2 handlerDisplacement;
 
 	Camera camera;
 	glm::mat4 worldToNDC;
@@ -147,30 +131,9 @@ private:
 		DOWNWARD = 0b100000,
 	};
 
-	// material variables
-	glm::vec3 ambient;
-	glm::vec3 diffuse;
-	glm::vec3 specular;
-	float ns;
-	glm::vec3 intensityEmissive;
-	// light variables
-	LightManager lightManager;
-	// environment variables
-	glm::vec3 intensityFog;
-	glm::vec3 attenuationConstants;
-
 	TextureManager textureManager;
 
-
-	bool shouldReload;
-	char buf[64];
-	bool flip;
-	Mesh::UVType uvImportType;
-	bool calculateUVonCPU;
-
 	MyObjReader* myReader;
-
-	FBO frameBuffer;
 };
 
 #endif // AS1_SCENE_H
