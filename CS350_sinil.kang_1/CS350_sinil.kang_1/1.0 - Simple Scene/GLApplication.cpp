@@ -36,6 +36,8 @@ End Header --------------------------------------------------------*/
 #include "../Assignment1/as1Scene.h"
 #include <../Common/Input.h>
 
+#include "../Common/Utility/Timer.h"
+
 //////////////////////////////////////////////////////////////////////
 
 GLFWwindow *window;
@@ -218,13 +220,14 @@ int main()
 
     do
     {
-
+        Timer* timer = Timer::GetTimer();
+        float dt = static_cast<float>(timer->GetDeltaTime());
 
         glfwMakeContextCurrent(window);
 
         // Now render the scene
         // Scene::Display method encapsulates pre-, render, and post- rendering operations
-        scene->Display();
+        scene->Display(dt);
 
         // Swap buffers
         glfwSwapBuffers(window);

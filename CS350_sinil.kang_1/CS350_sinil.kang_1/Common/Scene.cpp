@@ -47,19 +47,19 @@ void Scene::LoadAllShaders()
 
 
 // preRender : called to setup stuff prior to rendering the frame
-int Scene::preRender()
+int Scene::preRender(float dt)
 {
     return -1;
 }
 
 // Render : per frame rendering of the scene
-int Scene::Render()
+int Scene::Render(float dt)
 {
     return -1;
 }
 
 // postRender : Any updates to calculate after current frame
-int Scene::postRender()
+int Scene::postRender(float dt)
 {
     return -1;
 }
@@ -75,13 +75,13 @@ void Scene::UpdateGUI()
 }
 
 // Display : Per-frame execution of the scene
-int Scene::Display()
+int Scene::Display(float dt)
 {
-    preRender();
+    preRender(dt);
 
-    Render();
+    Render(dt);
 
-    postRender();
+    postRender(dt);
 
     return -1;
 }

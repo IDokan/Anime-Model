@@ -26,6 +26,7 @@ struct aiMaterial;
 enum aiTextureType;
 
 class AssimpShader;
+class FileObject;
 
 class Model
 {
@@ -61,6 +62,7 @@ private:
 	AssimpMesh ProcessMesh(aiMesh* mesh, const aiScene* scene);
 	std::vector<AssimpTexture> LoadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
 	unsigned int TextureFromFile(const char* path, const std::string& directory, bool gamma = false);
+
 
 	glm::vec3 boundingBox[2];
 

@@ -26,6 +26,8 @@ End Header --------------------------------------------------------*/
 #include <../Common/Meshes/Mesh.h>
 #include <../Common/shaders/AssimpShader.h>
 
+#include <../Common/Meshes/binFileSources/FileObject.h>
+
 
 Model::Model(const std::string& path)
 	:normalLength(1.f)
@@ -215,6 +217,7 @@ void Model::LoadModel(const std::string& path)
 {
 	Clear();
 
+	// Default is assimp importer
 	Assimp::Importer importer;
 	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices | aiProcess_GenUVCoords);
 	

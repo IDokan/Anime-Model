@@ -31,6 +31,8 @@ End Header --------------------------------------------------------*/
 #include <../Common/Meshes/models/Model.h>
 #include <../Common/shaders/AssimpShader.h>
 
+#include <../Common/Meshes/binFileSources/binFileStructs.h>
+
 AS1Scene::AS1Scene(int width, int height)
 	:Scene(width, height),
 	angleOfRotate(0), vertexNormalFlag(false), faceNormalFlag(false),
@@ -39,14 +41,17 @@ AS1Scene::AS1Scene(int width, int height)
 	sphereMesh = new Mesh();
 	orbitMesh = new Mesh();
 	floorMesh = new Mesh();
+	centerMesh = new Mesh(true);
 
-	modelMatrix = glm::mat4(1.f);
+	centerMatrix = glm::mat4(1.f);
+	// modelMatrix = glm::mat4(1.f);
 
 	normalMesh = new LineMesh();
 	faceNormalMesh = new LineMesh();
 	spheres = new ObjectMesh();
 	sphereOrbit = new LineMesh();
 	floorObjMesh = new ObjectMesh();
+	centerObjMesh = new ObjectMesh();
 
  	sphericalViewPoint = Point(1.f, 0.f, 3.14f);
 	cartesianViewVector = Vector(0.f, 0.f, -1.f);
@@ -78,9 +83,10 @@ int AS1Scene::Init()
 	MeshGenerator::GenerateOrbitMesh(*orbitMesh, 1.f, 32);
 
 	myReader->ReadObjFile("../Common/Meshes/models/quad.obj", floorMesh, true);
-
-	model = new Model("../Common/Meshes/models/Armadillo.ply");
+	// model = new Model("../Common/Meshes/models/Bomber.bin");
 #endif
+
+	centerMesh->LoadBinFile("../Common/Meshes/models/Bomber.bin");
 
 	AddMembersToGUI();
 
@@ -102,10 +108,10 @@ void AS1Scene::LoadAllShaders()
 		"../Common/shaders/normalDisplayShader.frag");
 
 	//
-	mainModelShader = new AssimpShader(programID);
+	// mainModelShader = new AssimpShader(programID);
 }
 
-int AS1Scene::preRender()
+int AS1Scene::preRender(float dt)
 {
 	glClearColor(clearColor.x, clearColor.y, clearColor.z, 1.f);
 
@@ -115,9 +121,12 @@ int AS1Scene::preRender()
 
 	glm::vec3 scaleVector = glm::vec3(1.f);
 	const float displacementToPi = glm::pi<float>() / 180.f;
-	modelMatrix = 
+	//modelMatrix = 
+	//	glm::rotate(180.f * displacementToPi, glm::vec3(0.f, 1.f, 0.f)) *
+	//	glm::scale(scaleVector) * model->CalcAdjustBoundingBoxMatrix();
+	centerMatrix =
 		glm::rotate(180.f * displacementToPi, glm::vec3(0.f, 1.f, 0.f)) *
-		glm::scale(scaleVector) * model->CalcAdjustBoundingBoxMatrix();
+		glm::scale(scaleVector) * centerMesh->calcAdjustBoundingBoxMatrix();
 	floorMatrix = glm::translate(glm::vec3(0.f, -5.f, 0.f)) * glm::rotate(glm::half_pi<float>(), glm::vec3(1.f, 0.f, 0.f)) * glm::scale(glm::vec3(10.f, 10.f, 1.f)) * floorMesh->calcAdjustBoundingBoxMatrix();
 
 	UpdateCamera();
@@ -135,7 +144,7 @@ int AS1Scene::preRender()
 	return 0;
 }
 
-int AS1Scene::Render()
+int AS1Scene::Render(float dt)
 {
 	floorObjMesh->SetShader(programID);
 	floorObjMesh->PrepareDrawing();
@@ -151,22 +160,34 @@ int AS1Scene::Render()
 
 	floorObjMesh->Draw(floorMesh->getIndexBufferSize());
 
+
+	centerObjMesh->SetShader(programID);
+	centerObjMesh->PrepareDrawing();
+
+	centerObjMesh->SendUniformFloatMatrix4("objToWorld", &centerMatrix[0][0]);
+	centerObjMesh->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
+	glm::vec3 red(1.f, 0.f, 0.f);
+	centerObjMesh->SendUniformFloat3("diffuseColor", &red.x);
+	centerObjMesh->SendUniformFloat3("camera", &cameraP.x);
+
+	centerObjMesh->Draw(centerMesh->getIndexBufferSize());
+
 	////////////////////////////////////////////////////////////////////////////////////// Draw ends\
 
-	mainModelShader->Use();
-	mainModelShader->SendUniformFloatMatrix4("objToWorld", &modelMatrix[0][0]);
-	mainModelShader->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
-	glm::vec3 red(1.f, 0.f, 0.f);
-	mainModelShader->SendUniformFloat3("diffuseColor", &red.x);
-	
-	model->Draw(programID);
+	//mainModelShader->Use();
+	//mainModelShader->SendUniformFloatMatrix4("objToWorld", &modelMatrix[0][0]);
+	//mainModelShader->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
+	//glm::vec3 red(1.f, 0.f, 0.f);
+	//mainModelShader->SendUniformFloat3("diffuseColor", &red.x);
+	//
+	//model->Draw(programID);
 	
 	DrawDebuggingObjects();
 
 	return 0;
 }
 
-int AS1Scene::postRender()
+int AS1Scene::postRender(float dt)
 {
 	constexpr float rotatePerFrame = 0.015f;
 	angleOfRotate += rotatePerFrame;
@@ -190,9 +211,10 @@ void AS1Scene::CleanUp()
 	delete sphereOrbit;
 	delete orbitMesh;
 
-	delete myReader;
+	delete floorObjMesh;
+	delete centerObjMesh;
 
-	delete mainModelShader;
+	delete myReader;
 }
 
 void AS1Scene::SetupNanoGUI(GLFWwindow* window)
@@ -224,14 +246,18 @@ void AS1Scene::InitGraphics()
 	floorObjMesh->Init(floorMesh->getVertexCount(), floorMesh->getVertexBuffer(), floorMesh->getVertexNormals(), reinterpret_cast<GLfloat*>(uvs.data()),
 		floorMesh->getIndexBufferSize(), floorMesh->getIndexBuffer());
 
+	centerObjMesh->SetShader(programID);
+	centerObjMesh->Init(centerMesh->getVertexCount(), centerMesh->getVertexBuffer(), centerMesh->getVertexNormals(), reinterpret_cast<GLfloat*>(uvs.data()),
+		centerMesh->getIndexBufferSize(), centerMesh->getIndexBuffer());
 
 	// normal inits
 	normalMesh->SetShader(normalDisplayProgramID);
-	normalMesh->Init(model->GetVertexNormalCount(), model->GetVertexNormalsForDisplay());
+	normalMesh->Init(centerMesh->getVertexNormalCount(), centerMesh->getVertexNormalsForDisplay());
 
-	// Face Inits
-	faceNormalMesh->SetShader(normalDisplayProgramID);
-	faceNormalMesh->Init(model->GetFaceNormalCount(), model->GetFaceNormalsForDisplay());
+	// @@@@ Disable temporarily
+	// // Face Inits
+	// faceNormalMesh->SetShader(normalDisplayProgramID);
+	// faceNormalMesh->Init(model->GetFaceNormalCount(), model->GetFaceNormalsForDisplay());
 
 
 	spheres->SetShader(programID);
@@ -258,23 +284,24 @@ void AS1Scene::DrawVertexNormals()
 	lineColor.g = 1.f;
 	lineColor.b = 1.f;
 	normalMesh->SendUniformFloat3("lineColor", reinterpret_cast<float*>(&lineColor));
-	normalMesh->SendUniformFloatMatrix4("objToWorld", &modelMatrix[0][0]);
+	normalMesh->SendUniformFloatMatrix4("objToWorld", &centerMatrix[0][0]);
 	normalMesh->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
-	normalMesh->Draw(model->GetVertexNormalCount());
+	normalMesh->Draw(centerMesh->getVertexNormalCount());
 }
 
 void AS1Scene::DrawFaceNormals()
 {
-	faceNormalMesh->PrepareDrawing();
-
-	glm::vec3 lineColor;
-	lineColor.r = 1.f;
-	lineColor.g = 1.f;
-	lineColor.b = 0.f;
-	faceNormalMesh->SendUniformFloat3("lineColor", &lineColor[0]);
-	faceNormalMesh->SendUniformFloatMatrix4("objToWorld", &modelMatrix[0][0]);
-	faceNormalMesh->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
-	faceNormalMesh->Draw(model->GetFaceNormalCount());
+	// @@@@@ Disable temporarily
+	// faceNormalMesh->PrepareDrawing();
+	// 
+	// glm::vec3 lineColor;
+	// lineColor.r = 1.f;
+	// lineColor.g = 1.f;
+	// lineColor.b = 0.f;
+	// faceNormalMesh->SendUniformFloat3("lineColor", &lineColor[0]);
+	// faceNormalMesh->SendUniformFloatMatrix4("objToWorld", &modelMatrix[0][0]);
+	// faceNormalMesh->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
+	// faceNormalMesh->Draw(model->GetFaceNormalCount());
 }
 
 void AS1Scene::SetupCamera()

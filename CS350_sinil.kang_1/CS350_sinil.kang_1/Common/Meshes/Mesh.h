@@ -19,12 +19,14 @@ End Header --------------------------------------------------------*/
 #define SIMPLE_OBJ_SCENE_MESH_H
 
 #include <vector>
-
+#include <string>
 #include <glm/glm.hpp>
+#include "../Common/Meshes/binFileSources/binFileStructs.h"
 
 typedef float GLfloat;
 typedef unsigned int GLuint;
 typedef unsigned char GLboolean;
+class FileObject;
 
 class Mesh
 {
@@ -39,6 +41,8 @@ public:
     friend class OBJReader;
     friend class MyObjReader;
     friend class MeshGenerator;
+
+    Mesh(bool binParserMode = false);
 
     // Get attribute values buffer
     GLfloat *getVertexBuffer();             // attribute 0
@@ -80,14 +84,32 @@ public:
 
     glm::mat4 calcAdjustBoundingBoxMatrix();
 
+
+/// Bin parser functions
+
+    bool LoadBinFile(const std::string& path);
+    bool ParseBinFile(FileObject* pFile);
+    bool ReadMesh(FileObject* pFile);
+    void ReadSkeleton(FileObject* pFile);
+    void ReadAnimation(FileObject* pFile);
+    void ReadVqs(FileObject* pFile, Vqs& vqs);
+
 private:
     std::vector<glm::vec3>    vertexBuffer;
     std::vector<GLuint>       vertexIndices;
     std::vector<glm::vec2>    vertexUVs;
     std::vector<glm::vec3>    vertexNormals, vertexNormalDisplay, faceNormalDisplay;
 
+private:
+    std::vector<BoneIndex> boneIndices;
+    std::vector<glm::vec4> boneWeights;
+    std::vector<Bone> skeleton;
+
+    // boundingBox[0] -> minimum point, boundingBox[1] -> maximum point
     glm::vec3               boundingBox[2];
     GLfloat                 normalLength = 0.f;
+
+    bool binParserMode;
 };
 
 

@@ -20,9 +20,10 @@ End Header --------------------------------------------------------*/
 #include <set>
 #include "Mesh.h"
 
-
 #include <glm/gtc/epsilon.hpp>
 #include <glm/gtx/transform.hpp>
+
+#include <../Common/Meshes/binFileSources/FileObject.h>
 
 // Initialize the data members in the mesh
 void Mesh::initData()
@@ -36,7 +37,22 @@ void Mesh::initData()
 
     normalLength = 0.00f;
 
+    boneIndices.clear();
+    boneWeights.clear();
+
+    boundingBox[0].x = FLT_MAX;
+    boundingBox[0].y = FLT_MAX;
+    boundingBox[0].z = FLT_MAX;
+    boundingBox[1].x = -FLT_MAX;
+    boundingBox[1].y = -FLT_MAX;
+    boundingBox[1].z = -FLT_MAX;
+
     return;
+}
+
+Mesh::Mesh(bool binParserMode)
+    : binParserMode(binParserMode)
+{
 }
 
 /////////////////////////////////////////////
@@ -458,4 +474,196 @@ glm::vec2 Mesh::calcCubeMap(glm::vec3 vEntity)
 glm::mat4 Mesh::calcAdjustBoundingBoxMatrix()
 {
     return glm::scale(2.f / getModelScale()) * glm::translate(-getModelCentroid());
+}
+
+bool Mesh::LoadBinFile(const std::string& path)
+{
+    initData();
+
+    // Bin parser mode activated
+    if (binParserMode)
+    {
+        FileObject* pFile = FileObject::OpenBinaryRead(path.c_str());
+        if (!pFile)
+        {
+            std::cout << "Invalid File Name: " << path << std::endl;
+            return false;
+        }
+
+        if (ParseBinFile(pFile) == false)
+        {
+            std::cout << "ERROR::BINPARSER::PARSING_FAILED";
+            return false;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+bool Mesh::ParseBinFile(FileObject* pFile)
+{
+    if (binParserMode == false)
+    {
+        std::cout << "Activate bin parser mode";
+        return false;
+    }
+
+    unsigned int fileVersion;
+    pFile->Read(fileVersion);
+    if (fileVersion != 'dpm2')
+    {
+        std::cout << "File Version Mismatch\n";
+        delete pFile;
+        return false;
+    }
+
+    unsigned int sectionType;
+    unsigned int sectionSize;
+    pFile->Read(sectionSize);
+
+    while (true)
+    {
+        pFile->Read(sectionType);
+        pFile->Read(sectionSize);
+
+        if (pFile->IsAtEndOfFile())
+        {
+            break;
+        }
+
+        switch (sectionType)
+        {
+        case 'mesh':
+            if (!ReadMesh(pFile))
+            {
+                delete pFile;
+                return false;
+            }
+            break;
+        case 'skel':
+            ReadSkeleton(pFile);
+            break;
+        case 'anim':
+            std::cout << "Reading animation file does not support\n";
+            break;
+        default:
+            std::cout << "Unknown Section Type" << std::endl;
+            delete pFile;
+            return false;
+            break;
+        }
+    }
+
+    return true;
+}
+
+bool Mesh::ReadMesh(FileObject* pFile)
+{
+    if (binParserMode == false)
+    {
+        std::cout << "Activate bin parser mode" << std::endl;
+        return false;
+    }
+
+    unsigned int vertexType;
+    pFile->Read(vertexType);
+    switch (vertexType)
+    {
+    case 0:				// VertexTypeDefault
+        std::cout << "Model has no skeleton";
+        return false;
+    case 1:				// VertexTypeSkin
+        break;
+    default:
+        std::cout << "Invalid Vertex Type" << std::endl;
+        return false;
+    }
+
+    unsigned int indexCount;
+    pFile->Read(indexCount);
+    vertexIndices.resize(indexCount);
+    pFile->Read(vertexIndices[0], indexCount);
+
+    unsigned int vertCount;
+    pFile->Read(vertCount);
+    vertexBuffer.resize(vertCount);
+    vertexUVs.resize(vertCount);
+    vertexNormals.resize(vertCount);
+    boneIndices.resize(vertCount);
+    boneWeights.resize(vertCount);
+
+    
+    glm::vec3 minVertex(FLT_MAX);
+    glm::vec3 maxVertex(-FLT_MAX);
+
+    for (unsigned int i = 0; i < vertCount; i++)
+    {
+        glm::vec3& position = vertexBuffer.at(i);
+        glm::vec2& uv = vertexUVs.at(i);
+        glm::vec3& normal = vertexNormals.at(i);
+        BoneIndex& boneIndex = boneIndices.at(i);
+        glm::vec4& weights = boneWeights.at(i);
+
+        pFile->Read(position.x, 3);
+        pFile->Read(normal.x, 3);
+        pFile->Read(uv.x, 2);
+        pFile->Read(weights.x, 4);
+        pFile->Read(boneIndex.elements[0], 4);
+
+        minVertex.x = std::min(minVertex.x, position.x);
+        maxVertex.x = std::max(maxVertex.x, position.x);
+        minVertex.y = std::min(minVertex.y, position.y);
+        maxVertex.y = std::max(maxVertex.y, position.y);
+        minVertex.z = std::min(minVertex.z, position.z);
+        maxVertex.z = std::max(maxVertex.z, position.z);
+    }
+
+    boundingBox[0] = minVertex;
+    boundingBox[1] = maxVertex;
+
+    calcVertexNormalsForDisplay();
+    return true;
+}
+
+void Mesh::ReadSkeleton(FileObject* pFile)
+{
+    if (binParserMode == false)
+    {
+        std::cout << "Activate bin parser mode" << std::endl;
+        return;
+    }
+
+    unsigned int boneCount;
+    pFile->Read(boneCount);
+    skeleton.resize(boneCount);
+
+    // loop through bones
+    for (unsigned int i = 0; i < boneCount; i++)
+    {
+        Bone& bone = skeleton[i];
+        pFile->Read(bone.name);
+        pFile->Read(bone.parentID);
+        ReadVqs(pFile, bone.toModelFromBone);
+        ReadVqs(pFile, bone.toBoneFromModel);
+    }
+}
+
+void Mesh::ReadAnimation(FileObject* pFile)
+{
+    if (binParserMode == false)
+    {
+        std::cout << "Activate bin parser mode" << std::endl;
+        return;
+    }
+
+    // TODO: 
+}
+
+void Mesh::ReadVqs(FileObject* pFile, Vqs& vqs)
+{
+    pFile->Read(vqs.v.x, 3); 
+    pFile->Read(vqs.q.x, 4);
+    vqs.s = 1.f;        // Set scale to identity
 }

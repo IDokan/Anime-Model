@@ -39,16 +39,16 @@ public:
     virtual void LoadAllShaders();
 
     // Display : encapsulates per-frame behavior of the scene
-    virtual int Display();
+    virtual int Display(float dt);
 
     // preRender : called to setup stuff prior to rendering the frame
-    virtual int preRender();
+    virtual int preRender(float dt);
 
     // Render : per frame rendering of the scene
-    virtual int Render();
+    virtual int Render(float dt);
 
     // postRender : Any updates to calculate after current frame
-    virtual int postRender();
+    virtual int postRender(float dt);
 
     // cleanup before destruction
     virtual void CleanUp();

@@ -52,6 +52,12 @@
     <Filter Include="Common\FBO">
       <UniqueIdentifier>{8049c590-e370-4eb0-a38d-b8bf50844f4c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common\Utility">
+      <UniqueIdentifier>{1778a846-9969-42c0-a6b1-8409a7fc2cb4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\Meshes\binFileSources">
+      <UniqueIdentifier>{59777016-31de-4574-b1d8-1f68d8e396d9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\1.0 - Simple Scene\GLApplication.cpp">
@@ -146,6 +152,12 @@
     </ClCompile>
     <ClCompile Include="..\Common\shaders\AssimpShader.cpp">
       <Filter>Common\shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Meshes\binFileSources\FileObject.cpp">
+      <Filter>Common\Meshes\binFileSources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Meshes\binFileSources\binFileStructs.cpp">
+      <Filter>Common\Meshes\binFileSources</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -244,6 +256,15 @@
     </ClInclude>
     <ClInclude Include="..\Common\shaders\AssimpShader.h">
       <Filter>Common\shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Utility\Timer.h">
+      <Filter>Common\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Meshes\binFileSources\binFileStructs.h">
+      <Filter>Common\Meshes\binFileSources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Meshes\binFileSources\FileObject.h">
+      <Filter>Common\Meshes\binFileSources</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

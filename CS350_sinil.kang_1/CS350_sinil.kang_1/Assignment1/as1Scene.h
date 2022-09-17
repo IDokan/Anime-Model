@@ -47,9 +47,9 @@ public:
 public:
 	int Init();
 	void LoadAllShaders();
-	int preRender();
-	int Render();
-	int postRender();
+	int preRender(float dt);
+	int Render(float dt);
+	int postRender(float dt);
 	void CleanUp();
 	void SetupNanoGUI(GLFWwindow* window);
 	void UpdateGUI();
@@ -73,8 +73,8 @@ private:
 	Mesh* sphereMesh;
 	Mesh* orbitMesh;
 	Mesh* floorMesh;
-
-	Model* model;
+	Mesh* centerMesh;
+	ObjectMesh* centerObjMesh;
 
 	// Shaders
 	GLuint programID;
@@ -88,13 +88,14 @@ private:
 	LineMesh* sphereOrbit;
 
 	// Hybrid rendering
-	AssimpShader* mainModelShader;
+	// AssimpShader* mainModelShader;
 
 	glm::vec3 clearColor;
 
 	float angleOfRotate;
-	glm::mat4 modelMatrix;
+	// glm::mat4 modelMatrix;
 	glm::mat4 floorMatrix;
+	glm::mat4 centerMatrix;
 
 	// GUI members
 	GLFWwindow* displayWindow;

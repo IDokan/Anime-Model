@@ -183,6 +183,8 @@ xcopy /y /d "..\ThirdParty\assimp\lib\*.dll" "$(TargetDir)"</Command>
     <ClCompile Include="..\Common\Input.cpp" />
     <ClCompile Include="..\Common\Lights\Light.cpp" />
     <ClCompile Include="..\Common\Lights\LightManager.cpp" />
+    <ClCompile Include="..\Common\Meshes\binFileSources\binFileStructs.cpp" />
+    <ClCompile Include="..\Common\Meshes\binFileSources\FileObject.cpp" />
     <ClCompile Include="..\Common\Meshes\Mesh.cpp" />
     <ClCompile Include="..\Common\Meshes\MeshGenerator.cpp" />
     <ClCompile Include="..\Common\Meshes\models\AssimpMesh.cpp" />
@@ -215,6 +217,8 @@ xcopy /y /d "..\ThirdParty\assimp\lib\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="..\Common\Input.h" />
     <ClInclude Include="..\Common\Lights\Light.h" />
     <ClInclude Include="..\Common\Lights\LightManager.h" />
+    <ClInclude Include="..\Common\Meshes\binFileSources\binFileStructs.h" />
+    <ClInclude Include="..\Common\Meshes\binFileSources\FileObject.h" />
     <ClInclude Include="..\Common\Meshes\Mesh.h" />
     <ClInclude Include="..\Common\Meshes\MeshGenerator.h" />
     <ClInclude Include="..\Common\Meshes\models\AssimpMesh.h" />
@@ -229,6 +233,7 @@ xcopy /y /d "..\ThirdParty\assimp\lib\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="..\Common\shaders\AssimpShader.h" />
     <ClInclude Include="..\Common\Textures\Texture.h" />
     <ClInclude Include="..\Common\Textures\TextureManager.h" />
+    <ClInclude Include="..\Common\Utility\Timer.h" />
     <ClInclude Include="..\myGUI\imconfig.h" />
     <ClInclude Include="..\myGUI\imgui.h" />
     <ClInclude Include="..\myGUI\imgui_impl_glfw.h" />
