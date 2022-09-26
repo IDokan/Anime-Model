@@ -80,7 +80,12 @@ GLfloat *Mesh::getVertexNormalsForDisplay()
 
 GLfloat* Mesh::getFaceNormalsForDisplay()
 {
-    return reinterpret_cast<GLfloat*>(faceNormalDisplay.data());;
+    return reinterpret_cast<GLfloat*>(faceNormalDisplay.data());
+}
+
+GLfloat* Mesh::GetBonesForDisplay()
+{
+    return reinterpret_cast<GLfloat*>(initialBones.data());
 }
 
 GLuint *Mesh::getIndexBuffer()
@@ -119,6 +124,16 @@ unsigned int Mesh::getVertexNormalCount()
 unsigned int Mesh::getFaceNormalCount()
 {
     return static_cast<unsigned int>(faceNormalDisplay.size());
+}
+
+unsigned int Mesh::GetBoneCountForDisplay()
+{
+    return static_cast<unsigned int>(initialBones.size());
+}
+
+const std::vector<Bone>& Mesh::GetSkeleton()
+{
+    return skeleton;
 }
 
 glm::vec3  Mesh::getModelScale()
@@ -476,6 +491,16 @@ glm::mat4 Mesh::calcAdjustBoundingBoxMatrix()
     return glm::scale(2.f / getModelScale()) * glm::translate(-getModelCentroid());
 }
 
+Vqs Mesh::GetParentToModelVqs(int animationID, int parentID, int keyFrameID, Vqs childToModel)
+{
+    if (parentID < 0)
+    {
+        return childToModel;
+    }
+
+    return animations[animationID].tracks[parentID].keyFrames[keyFrameID].toModelFromBone * childToModel;
+}
+
 bool Mesh::LoadBinFile(const std::string& path)
 {
     initData();
@@ -546,7 +571,7 @@ bool Mesh::ParseBinFile(FileObject* pFile)
             ReadSkeleton(pFile);
             break;
         case 'anim':
-            std::cout << "Reading animation file does not support\n";
+            // ReadAnimation(pFile);
             break;
         default:
             std::cout << "Unknown Section Type" << std::endl;
@@ -638,6 +663,7 @@ void Mesh::ReadSkeleton(FileObject* pFile)
     unsigned int boneCount;
     pFile->Read(boneCount);
     skeleton.resize(boneCount);
+    initialBones.resize(boneCount * 2);
 
     // loop through bones
     for (unsigned int i = 0; i < boneCount; i++)
@@ -645,8 +671,15 @@ void Mesh::ReadSkeleton(FileObject* pFile)
         Bone& bone = skeleton[i];
         pFile->Read(bone.name);
         pFile->Read(bone.parentID);
+        Vqs toModel;
+        Vqs toBone;
         ReadVqs(pFile, bone.toModelFromBone);
         ReadVqs(pFile, bone.toBoneFromModel);
+
+        // @@@@ TODO: figure out appropriate unit bone
+        constexpr float BONE_SCALE = 0.5f;
+        initialBones[i * 2] = glm::vec3(0.f, 0.f, 0.f);
+        initialBones[i * 2 + 1] = glm::vec3(BONE_SCALE, 0.f, 0.f);
     }
 }
 
@@ -657,8 +690,30 @@ void Mesh::ReadAnimation(FileObject* pFile)
         std::cout << "Activate bin parser mode" << std::endl;
         return;
     }
+    animations.push_back(Animation());
+    Animation& animation = animations.back();
+    pFile->Read(animation.duration);
+    unsigned int trackCount;
+    pFile->Read(trackCount);
+    animation.tracks.resize(trackCount);
+    for (unsigned int i = 0; i < trackCount; i++)
+    {
+        Track& track = animation.tracks[i];
+        unsigned int keyFrameCount;
+        pFile->Read(keyFrameCount);
+        track.keyFrames.resize(keyFrameCount);
 
-    // TODO: 
+        for (unsigned int k = 0; k < keyFrameCount; k++)
+        {
+            KeyFrame& frame = track.keyFrames[k];
+            pFile->Read(frame.time);
+            Vqs toParentFromBone;
+            ReadVqs(pFile, toParentFromBone);
+
+            frame.toModelFromBone = GetParentToModelVqs(0, skeleton[i].parentID, k, toParentFromBone);
+        }   // End reading in key frames
+    }   // End reading in tracks
+
 }
 
 void Mesh::ReadVqs(FileObject* pFile, Vqs& vqs)

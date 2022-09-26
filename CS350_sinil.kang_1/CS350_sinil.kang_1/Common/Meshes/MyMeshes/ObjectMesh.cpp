@@ -15,7 +15,7 @@ End Header --------------------------------------------------------*/
 #include <iostream>
 
 ObjectMesh::ObjectMesh()
-	:MyMesh(), normalBuffer(0), uvBuffer(0), indexBuffer(0), uniformBlockBuffer(0)
+	:MyMesh(), normalBuffer(0), uvBuffer(0), indexBuffer(0)
 {
 }
 
@@ -25,7 +25,6 @@ ObjectMesh::~ObjectMesh()
 	glDeleteBuffers(1, &normalBuffer);
 	glDeleteBuffers(1, &uvBuffer);
 	glDeleteBuffers(1, &indexBuffer);
-	glDeleteBuffers(1, &uniformBlockBuffer);
 
 	glDeleteVertexArrays(1, &VAO);
 }
@@ -96,112 +95,6 @@ bool ObjectMesh::Init(int vertexCount, GLfloat* vertices, GLfloat* normals, GLfl
 	//}
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexCount * sizeof(unsigned int), indices, GL_DYNAMIC_DRAW);
-
-	return true;
-}
-
-bool ObjectMesh::SendUniformBlockVector3s(const GLchar* blockName, const GLsizei blockPropertyCount, const GLchar* const* blockPropertyNames, const float ** blockPropertyData)
-{	// Step 1.	Design layout of the uniform Blocks
-
-	glUseProgram(programIDReference);
-	glBindVertexArray(VAO);
-	// Step 2.	First get the block index
-	uniformBlockIndex = glGetUniformBlockIndex(programIDReference, blockName);
-	if (uniformBlockIndex == GL_INVALID_INDEX)
-	{
-		std::cout << blockName << " is not applied, uniformBlockIndex == GL_INVALID_INDEX" << std::endl;
-		return false;
-	}
-
-	// Step 3.	Allocate the block, get block indices and offsets
-	GLint uniformBlockSize = 0;
-	glGetActiveUniformBlockiv(programIDReference, uniformBlockIndex, GL_UNIFORM_BLOCK_DATA_SIZE, &uniformBlockSize);
-
-	GLuint* blockPropertyIndices = new GLuint[blockPropertyCount];
-	glGetUniformIndices(programIDReference, blockPropertyCount, blockPropertyNames, blockPropertyIndices);
-
-	if (blockPropertyIndices[0] == GL_INVALID_INDEX)
-	{
-		std::cout << blockName << " is not applied, blockPropertyIndices[0] == GL_INVALID_INDEX" << std::endl;
-		return false;
-	}
-
-	GLint* offsets = new GLint[blockPropertyCount];
-	glGetActiveUniformsiv(programIDReference, blockPropertyCount, blockPropertyIndices, GL_UNIFORM_OFFSET, offsets);
-
-	// Step 4.	Copy data into the buffer from CPU memory
-	char* buffer = new char[uniformBlockSize];
-	for (int i = 0; i < blockPropertyCount; ++i)
-	{
-		if (buffer + offsets[i] < &buffer[uniformBlockSize])
-		{
-			memcpy_s(buffer + offsets[i], sizeof(float) * 3, blockPropertyData[i], sizeof(float) * 3);
-		}
-	}
-
-	// Step 5.	Create OpenGL buffer to manage this uniform block
-	if (uniformBlockBuffer == 0)
-	{
-		glGenBuffers(1, &uniformBlockBuffer);
-		glBindBuffer(GL_UNIFORM_BUFFER, uniformBlockBuffer);
-	}
-	glBufferData(GL_UNIFORM_BUFFER, uniformBlockSize, buffer, GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_UNIFORM_BUFFER, uniformBlockIndex, uniformBlockBuffer);
-	
-	delete[] buffer;
-
-	return true;
-}
-
-bool ObjectMesh::SendUniformBlockVector3s(const GLchar* blockName, const GLsizei blockPropertyCount, const GLchar* const* blockPropertyNames, const glm::vec3* blockPropertyData)
-{	// Step 1.	Design layout of the uniform Blocks
-
-	glUseProgram(programIDReference);
-	glBindVertexArray(VAO);
-	// Step 2.	First get the block index
-	uniformBlockIndex = glGetUniformBlockIndex(programIDReference, blockName);
-	if (uniformBlockIndex == GL_INVALID_INDEX)
-	{
-		std::cout << blockName << " is not applied, uniformBlockIndex == GL_INVALID_INDEX" << std::endl;
-		return false;
-	}
-
-	// Step 3.	Allocate the block, get block indices and offsets
-	GLint uniformBlockSize = 0;
-	glGetActiveUniformBlockiv(programIDReference, uniformBlockIndex, GL_UNIFORM_BLOCK_DATA_SIZE, &uniformBlockSize);
-
-	GLuint* blockPropertyIndices = new GLuint[blockPropertyCount];
-	glGetUniformIndices(programIDReference, blockPropertyCount, blockPropertyNames, blockPropertyIndices);
-
-	if (blockPropertyIndices[0] == GL_INVALID_INDEX)
-	{
-		std::cout << blockName << " is not applied, blockPropertyIndices[0] == GL_INVALID_INDEX" << std::endl;
-		return false;
-	}
-
-	GLint* offsets = new GLint[blockPropertyCount];
-	glGetActiveUniformsiv(programIDReference, blockPropertyCount, blockPropertyIndices, GL_UNIFORM_OFFSET, offsets);
-
-	// Step 4.	Copy data into the buffer from CPU memory
-	char* buffer = new char[uniformBlockSize];
-	for (int i = 0; i < blockPropertyCount; ++i)
-	{
-		if (buffer + offsets[i] < &buffer[uniformBlockSize])
-		{
-			memcpy_s(buffer + offsets[i], sizeof(float) * 3, &blockPropertyData[i], sizeof(float) * 3);
-		}
-	}
-
-	// Step 5.	Create OpenGL buffer to manage this uniform block
-	if (uniformBlockBuffer == 0)
-	{
-		glGenBuffers(1, &uniformBlockBuffer);
-		glBindBuffer(GL_UNIFORM_BUFFER, uniformBlockBuffer);
-	}
-	glBufferData(GL_UNIFORM_BUFFER, uniformBlockSize, buffer, GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_UNIFORM_BUFFER, uniformBlockIndex, uniformBlockBuffer);
-
-	delete[] buffer;
 
 	return true;
 }

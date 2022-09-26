@@ -14,6 +14,7 @@ End Header --------------------------------------------------------*/
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 
 class Mesh;
 
@@ -33,10 +34,19 @@ public:
 	void SendUniformFloat3(const char* uniformName, const float* uniformData);
 	void SendUniformFloat(const char* uniformName, const float uniformData);
 	void SendUniformInt(const char* uniformName, const int uniformData);
+	// Problem
+	bool SendUniformBlockFloatVQS(const char* blockName, const GLsizei blockPropertyCount, const char* const* blockPropertyNames, const glm::mat3* blockPropertyDataMatrix, const glm::vec3* blockPropertyDataVector, const float* blockPropertyDataScaler);
+
+	// It worked.
+	bool SendUniformBlockVector3s(const GLchar* blockName, const GLsizei blockPropertyCount, const GLchar* const* blockPropertyNames, const float** blockPropertyData);
+	bool SendUniformBlockVector3s(const GLchar* blockName, const GLsizei blockPropertyCount, const GLchar* const* blockPropertyNames, const glm::vec3* blockPropertyData);
 
 protected:
 	GLuint VAO;
 	GLuint VBO;
 
 	GLuint programIDReference;
+
+	GLuint  uniformBlockBuffer;
+	GLuint uniformBlockIndex;
 };

@@ -69,6 +69,11 @@ private:
 
 	void DrawDebuggingObjects();
 
+	void PrepareSkeletons();
+
+	void CreateSkeletonVQSBlockNames(const size_t size);
+	void DestroySkeletonVQSBlockNames();
+
 private:
 	Mesh* sphereMesh;
 	Mesh* orbitMesh;
@@ -82,10 +87,13 @@ private:
 	ObjectMesh* floorObjMesh;
 	// Normal Drawing
 	GLuint normalDisplayProgramID;
+	GLuint normalUniformProgramID;
 	LineMesh* normalMesh;
 	// Face Normals
 	LineMesh* faceNormalMesh;
 	LineMesh* sphereOrbit;
+	// Skeletons
+	LineMesh* skeletonLines;
 
 	// Hybrid rendering
 	// AssimpShader* mainModelShader;
@@ -135,6 +143,9 @@ private:
 	TextureManager textureManager;
 
 	MyObjReader* myReader;
+
+	GLchar** skeletonVQSBlockNames;
+	GLsizei skeletonVQSBlockNameSize;
 };
 
 #endif // AS1_SCENE_H

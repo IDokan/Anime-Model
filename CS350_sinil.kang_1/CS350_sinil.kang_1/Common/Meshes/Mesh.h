@@ -51,11 +51,14 @@ public:
 
     GLfloat *getVertexNormalsForDisplay();  // attribute 0
     GLfloat* getFaceNormalsForDisplay();
+    GLfloat* GetBonesForDisplay();
 
     unsigned int getVertexBufferSize();
     unsigned int getVertexCount();
     unsigned int getVertexNormalCount();
     unsigned int getFaceNormalCount();
+    unsigned int GetBoneCountForDisplay();
+    const std::vector<Bone>& GetSkeleton();
 
     // Get vertex index buffer
     GLuint *getIndexBuffer();
@@ -84,7 +87,7 @@ public:
 
     glm::mat4 calcAdjustBoundingBoxMatrix();
 
-
+    Vqs GetParentToModelVqs(int animationID, int parentID, int keyFrameID, Vqs childToModel);
 /// Bin parser functions
 
     bool LoadBinFile(const std::string& path);
@@ -94,16 +97,26 @@ public:
     void ReadAnimation(FileObject* pFile);
     void ReadVqs(FileObject* pFile, Vqs& vqs);
 
+    Vqs test;
+
 private:
+    // Models
     std::vector<glm::vec3>    vertexBuffer;
     std::vector<GLuint>       vertexIndices;
     std::vector<glm::vec2>    vertexUVs;
     std::vector<glm::vec3>    vertexNormals, vertexNormalDisplay, faceNormalDisplay;
 
 private:
+    // Skeletons
     std::vector<BoneIndex> boneIndices;
     std::vector<glm::vec4> boneWeights;
     std::vector<Bone> skeleton;
+    std::vector<glm::vec3> initialBones;
+
+private:
+    // Animations
+    std::vector<Animation> animations;
+    
 
     // boundingBox[0] -> minimum point, boundingBox[1] -> maximum point
     glm::vec3               boundingBox[2];

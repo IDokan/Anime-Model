@@ -87,6 +87,11 @@ Bone& Bone::operator=(Bone&& other)
 	return *this;
 }
 
+const Vqs& Bone::GetToModelFromBone() const
+{
+	return toModelFromBone;
+}
+
 Vqs::Vqs()
 	: v(glm::vec3(0)), q(), s(1.f)
 {
@@ -224,14 +229,14 @@ Quaternion Inverse(Quaternion&& q) noexcept
 	return Quaternion(-q.v, q.s) / magnitude_squared(q);
 }
 
-glm::mat4 ConvertToMatrix(const Quaternion& q) noexcept
+glm::mat4 ConvertToMatrix4(const Quaternion& q) noexcept
 {
-	if (magnitude_squared(q) < 1.f - std::numeric_limits<float>::epsilon() ||
-		magnitude_squared(q) > 1.f + std::numeric_limits<float>::epsilon())
-	{
-		std::cout << "Given quaternion is not a unit quaternion." << std::endl;
-		abort();
-	}
+	// if (magnitude_squared(q) < 1.f - std::numeric_limits<float>::epsilon() ||
+	// 	magnitude_squared(q) > 1.f + std::numeric_limits<float>::epsilon())
+	// {
+	// 	std::cout << "Given quaternion is not a unit quaternion." << std::endl;
+	// 	abort();
+	// }
 	glm::mat4 result;
 	result[0][0] = 1 - 2*(q.y * q.y + q.z*q.z);
 	result[0][1] = 2*(q.x*q.y + q.s*q.z);
@@ -243,4 +248,39 @@ glm::mat4 ConvertToMatrix(const Quaternion& q) noexcept
 	result[2][1] = 2 * (q.y * q.z - q.s * q.x);
 	result[2][2] = 1 - 2 * (q.x * q.x + q.y * q.y);
 	return result;
+}
+
+glm::mat3 ConvertToMatrix3(const Quaternion& q) noexcept
+{
+	// if (magnitude_squared(q) < 1.f - std::numeric_limits<float>::epsilon() ||
+	// 	magnitude_squared(q) > 1.f + std::numeric_limits<float>::epsilon())
+	// {
+	// 	std::cout << "Given quaternion is not a unit quaternion." << std::endl;
+	// 	abort();
+	// }
+	glm::mat3 result;
+	result[0][0] = 1 - 2 * (q.y * q.y + q.z * q.z);
+	result[0][1] = 2 * (q.x * q.y + q.s * q.z);
+	result[0][2] = 2 * (q.x * q.z - q.s * q.y);
+	result[1][0] = 2 * (q.x * q.y - q.s * q.z);
+	result[1][1] = 1 - 2 * (q.x * q.x + q.z * q.z);
+	result[1][2] = 2 * (q.y * q.z + q.s * q.x);
+	result[2][0] = 2 * (q.x * q.z + q.s * q.y);
+	result[2][1] = 2 * (q.y * q.z - q.s * q.x);
+	result[2][2] = 1 - 2 * (q.x * q.x + q.y * q.y);
+	return result;
+}
+
+Vqs operator*(const Vqs& lhs, const Vqs& rhs) noexcept
+{
+	Vqs result;
+	result.s = lhs.s * rhs.s;
+	result.q = lhs.q * rhs.q;
+	result.v = lhs * rhs.v;
+	return result;
+}
+
+glm::vec3 operator*(const Vqs& vqs, glm::vec3 v) noexcept
+{
+	return ConvertToMatrix3(vqs.q) * (vqs.s * v) + vqs.v;
 }

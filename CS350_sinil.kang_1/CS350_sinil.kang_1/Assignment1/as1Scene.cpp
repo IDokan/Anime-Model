@@ -10,6 +10,7 @@ Project: sinil.kang_CS300_1
 Author: Sinil Kang = sinil.kang = Colleague ID: 0052782
 Creation date: 9/18/2021
 End Header --------------------------------------------------------*/
+#define _CRT_SECURE_NO_WARNINGS
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <../Assignment1/as1Scene.h>
@@ -36,7 +37,7 @@ End Header --------------------------------------------------------*/
 AS1Scene::AS1Scene(int width, int height)
 	:Scene(width, height),
 	angleOfRotate(0), vertexNormalFlag(false), faceNormalFlag(false),
-	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f)
+	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f), skeletonVQSBlockNames(nullptr), skeletonVQSBlockNameSize(-1)
 {
 	sphereMesh = new Mesh();
 	orbitMesh = new Mesh();
@@ -70,6 +71,8 @@ AS1Scene::AS1Scene(int width, int height)
 	relativeUp = Vector(0.f, 1.f, 0.f);
 
 	myReader = new MyObjReader();
+
+	skeletonLines = new LineMesh();
 }
 
 AS1Scene::~AS1Scene()
@@ -86,7 +89,8 @@ int AS1Scene::Init()
 	// model = new Model("../Common/Meshes/models/Bomber.bin");
 #endif
 
-	centerMesh->LoadBinFile("../Common/Meshes/models/Bomber.bin");
+	centerMesh->LoadBinFile("../Common/Meshes/models/Tad.bin");
+	CreateSkeletonVQSBlockNames(centerMesh->GetSkeleton().size());
 
 	AddMembersToGUI();
 
@@ -107,6 +111,9 @@ void AS1Scene::LoadAllShaders()
 	normalDisplayProgramID = LoadShaders("../Common/shaders/normalDisplayShader.vert",
 		"../Common/shaders/normalDisplayShader.frag");
 
+	normalUniformProgramID = LoadShaders("../Common/shaders/normalUniformShader.vert",
+		"../Common/shaders/normalUniformShader.frag");
+
 	//
 	// mainModelShader = new AssimpShader(programID);
 }
@@ -126,7 +133,7 @@ int AS1Scene::preRender(float dt)
 	//	glm::scale(scaleVector) * model->CalcAdjustBoundingBoxMatrix();
 	centerMatrix =
 		glm::rotate(180.f * displacementToPi, glm::vec3(0.f, 1.f, 0.f)) *
-		glm::scale(scaleVector) * centerMesh->calcAdjustBoundingBoxMatrix();
+		glm::scale(scaleVector);
 	floorMatrix = glm::translate(glm::vec3(0.f, -5.f, 0.f)) * glm::rotate(glm::half_pi<float>(), glm::vec3(1.f, 0.f, 0.f)) * glm::scale(glm::vec3(10.f, 10.f, 1.f)) * floorMesh->calcAdjustBoundingBoxMatrix();
 
 	UpdateCamera();
@@ -172,6 +179,36 @@ int AS1Scene::Render(float dt)
 
 	centerObjMesh->Draw(centerMesh->getIndexBufferSize());
 
+
+	glDisable(GL_DEPTH_TEST);
+	skeletonLines->PrepareDrawing();
+
+	glm::vec3 lineColor;
+	lineColor.r = 1.f;
+	lineColor.g = 1.f;
+	lineColor.b = 1.f;
+	const std::vector<Bone>& centerMeshSkeleton = centerMesh->GetSkeleton();
+	const int skeletonCount = static_cast<int>(centerMeshSkeleton.size());
+	std::vector<glm::mat3> quaternionMatrices(skeletonCount);
+	std::vector<glm::vec3> translations(skeletonCount);
+	std::vector<float> scalers(skeletonCount);
+	for (int i = 0; i < skeletonCount; i++)
+	{
+		Vqs toModel = centerMeshSkeleton[i].GetToModelFromBone();
+		quaternionMatrices[i] = ConvertToMatrix3(toModel.q);
+		translations[i] = toModel.v;
+		scalers[i] = toModel.s;
+	}
+	// Since VQS has three parameters, block property count should be multiplied by 3.
+	const GLsizei blockPropertyCount = skeletonCount * 3;
+	skeletonLines->SendUniformBlockFloatVQS("Block", blockPropertyCount, skeletonVQSBlockNames, quaternionMatrices.data(), translations.data(), scalers.data());
+	skeletonLines->SendUniformFloat3("lineColor", reinterpret_cast<float*>(&lineColor));
+	skeletonLines->SendUniformFloatMatrix4("objToWorld", &centerMatrix[0][0]);
+	skeletonLines->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
+	skeletonLines->Draw(centerMesh->GetBoneCountForDisplay());
+
+	glEnable(GL_DEPTH_TEST);
+
 	////////////////////////////////////////////////////////////////////////////////////// Draw ends\
 
 	//mainModelShader->Use();
@@ -198,11 +235,14 @@ void AS1Scene::CleanUp()
 {
 	glDeleteProgram(programID);
 	glDeleteProgram(normalDisplayProgramID);
+	glDeleteProgram(normalUniformProgramID);
 
 
 	MyImGUI::ClearImGUI();
 
 	textureManager.Clear();
+
+	DestroySkeletonVQSBlockNames();
 
 	delete sphereMesh;
 	delete normalMesh;
@@ -215,6 +255,8 @@ void AS1Scene::CleanUp()
 	delete centerObjMesh;
 
 	delete myReader;
+
+	delete skeletonLines;
 }
 
 void AS1Scene::SetupNanoGUI(GLFWwindow* window)
@@ -247,7 +289,7 @@ void AS1Scene::InitGraphics()
 		floorMesh->getIndexBufferSize(), floorMesh->getIndexBuffer());
 
 	centerObjMesh->SetShader(programID);
-	centerObjMesh->Init(centerMesh->getVertexCount(), centerMesh->getVertexBuffer(), centerMesh->getVertexNormals(), reinterpret_cast<GLfloat*>(uvs.data()),
+	centerObjMesh->Init(centerMesh->getVertexCount(), centerMesh->getVertexBuffer(), centerMesh->getVertexNormals(), centerMesh->getVertexUVs(),
 		centerMesh->getIndexBufferSize(), centerMesh->getIndexBuffer());
 
 	// normal inits
@@ -260,14 +302,14 @@ void AS1Scene::InitGraphics()
 	// faceNormalMesh->Init(model->GetFaceNormalCount(), model->GetFaceNormalsForDisplay());
 
 
+	PrepareSkeletons();
+
 	spheres->SetShader(programID);
 	spheres->Init(sphereMesh->getVertexCount(), sphereMesh->getVertexBuffer(), sphereMesh->getVertexNormals(), sphereMesh->getVertexUVs(),
 		sphereMesh->getIndexBufferSize(), sphereMesh->getIndexBuffer());
 
 	sphereOrbit->SetShader(normalDisplayProgramID);
 	sphereOrbit->Init(orbitMesh->getVertexBufferSize(), orbitMesh->getVertexBuffer());
-
-
 }
 
 void AS1Scene::AddMembersToGUI()
@@ -439,4 +481,58 @@ void AS1Scene::DrawDebuggingObjects()
 	{
 		DrawFaceNormals();
 	}
+}
+
+void AS1Scene::PrepareSkeletons()
+{
+	skeletonLines->SetShader(normalUniformProgramID);
+	skeletonLines->Init(centerMesh->GetBoneCountForDisplay(), centerMesh->GetBonesForDisplay());
+}
+
+void AS1Scene::CreateSkeletonVQSBlockNames(const size_t size)
+{
+	skeletonVQSBlockNameSize = static_cast<GLsizei>(size * 3);
+	skeletonVQSBlockNames = new GLchar * [skeletonVQSBlockNameSize];
+	constexpr int MAX_STRING_SIZE = 40;
+
+	for (int i = 0; i < skeletonVQSBlockNameSize; i++)
+	{
+		skeletonVQSBlockNames[i] = new GLchar[MAX_STRING_SIZE];
+	}
+
+	for (int i = 0; i < skeletonVQSBlockNameSize; i++)
+	{
+		int blockIndex = i / 3;
+		std::string result;
+		switch(i % 3)
+		{
+		case 0:
+			result = std::string(std::string("Block.item[") + std::to_string(blockIndex) + std::string("].toModelFromBone"));
+			strcpy(skeletonVQSBlockNames[i], result.c_str());
+			break;
+		case 1:
+			result = std::string(std::string("Block.item[") + std::to_string(blockIndex) + std::string("].v")).c_str();
+			strcpy(skeletonVQSBlockNames[i], result.c_str());
+			break;
+		case 2:
+			result = std::string(std::string("Block.item[") + std::to_string(blockIndex) + std::string("].s")).c_str();
+			strcpy(skeletonVQSBlockNames[i], result.c_str());
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+void AS1Scene::DestroySkeletonVQSBlockNames()
+{
+	if (skeletonVQSBlockNameSize < 0)
+	{
+		return;
+	}
+	for (size_t i = 0; i < skeletonVQSBlockNameSize; i++)
+	{
+		delete[] skeletonVQSBlockNames[i];
+	}
+	delete[] skeletonVQSBlockNames;
 }

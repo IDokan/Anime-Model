@@ -301,6 +301,12 @@
     <None Include="..\Common\ppms\metal_roof_spec_512x512.ppm">
       <Filter>Common\ppms</Filter>
     </None>
+    <None Include="..\Common\shaders\normalUniformShader.frag">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\normalUniformShader.vert">
+      <Filter>Common\shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\myGUI\LICENSE.txt">

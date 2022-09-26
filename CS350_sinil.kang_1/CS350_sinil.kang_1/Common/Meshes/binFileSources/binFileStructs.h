@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include <glm/glm.hpp>
 
 struct Quaternion
@@ -57,7 +58,8 @@ void operator*=(Quaternion& q1, const Quaternion& q2) noexcept;
 [[nodiscard]] Quaternion Inverse(Quaternion&& q) noexcept;
 
 // Need q be unit quaternion
-[[nodiscard]] glm::mat4 ConvertToMatrix(const Quaternion& q) noexcept;
+[[nodiscard]] glm::mat4 ConvertToMatrix4(const Quaternion& q) noexcept;
+[[nodiscard]] glm::mat3 ConvertToMatrix3(const Quaternion& q) noexcept;
 
 struct Vqs
 {
@@ -72,6 +74,9 @@ public:
     Quaternion q;
     float s;
 };
+
+[[nodiscard]] Vqs operator*(const Vqs& lhs, const Vqs& rhs) noexcept;
+[[nodiscard]] glm::vec3 operator*(const Vqs& vqs, glm::vec3 v) noexcept;
 
 struct BoneIndex
 {
@@ -94,9 +99,34 @@ public:
     Bone(Bone&& other);
     Bone& operator=(const Bone& other);
     Bone& operator=(Bone&& other);
+
+    const Vqs& GetToModelFromBone() const;
 private:
     std::string name;
     int parentID;
     Vqs toModelFromBone;
     Vqs toBoneFromModel;
+};
+
+class KeyFrame
+{
+public:
+    friend class Mesh;
+public:
+    float GetTime()const { return time; }
+    const Vqs& ToParentFromBone() const { return toModelFromBone; }
+private:
+    float time;
+    Vqs toModelFromBone;
+};
+
+struct Track
+{
+    std::vector<KeyFrame> keyFrames;
+};
+
+struct Animation
+{
+    float duration;
+    std::vector<Track> tracks;
 };
