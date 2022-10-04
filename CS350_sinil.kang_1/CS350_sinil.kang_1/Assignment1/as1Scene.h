@@ -146,6 +146,10 @@ private:
 
 	GLchar** skeletonVQSBlockNames;
 	GLsizei skeletonVQSBlockNameSize;
+
+	float timer;
+	bool playAnimation;
+	
 };
 
 #endif // AS1_SCENE_H

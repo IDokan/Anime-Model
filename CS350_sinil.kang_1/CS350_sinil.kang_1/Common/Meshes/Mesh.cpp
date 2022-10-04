@@ -491,14 +491,74 @@ glm::mat4 Mesh::calcAdjustBoundingBoxMatrix()
     return glm::scale(2.f / getModelScale()) * glm::translate(-getModelCentroid());
 }
 
-Vqs Mesh::GetParentToModelVqs(int animationID, int parentID, int keyFrameID, Vqs childToModel)
+void Mesh::GetAnimationTransform(float& time, std::vector<Vqs>& transforms)
 {
-    if (parentID < 0)
+    Animation animation = animations[0];
+    if (time > animation.duration)
     {
-        return childToModel;
+        time -= animation.duration * static_cast<int>(time / animation.duration);
     }
 
-    return animations[animationID].tracks[parentID].keyFrames[keyFrameID].toModelFromBone * childToModel;
+    const size_t trackSize = animation.tracks.size();
+    transforms.resize(trackSize);
+    for (size_t i = 0; i < trackSize; i++)
+    {
+        const size_t keyFrameSize = animation.tracks[i].keyFrames.size();
+        for (size_t j = 0; j < keyFrameSize; j++)
+        {
+            int transformIndex;
+            int nextTransformIndex;
+            // If time is correct or that is the last data
+            if (time < animation.tracks[i].keyFrames[j].time || j == keyFrameSize - 1)
+            {
+                // If there is only one keyFrame
+                if (keyFrameSize == 1)
+                {
+                    Vqs result = animation.tracks[i].keyFrames[j].toModelFromBone;
+                    result.q = result.q / (magnitude(result.q));
+                    // Has parent
+                    if (skeleton[i].parentID >= 0)
+                    {
+                        transforms[i] = transforms[skeleton[i].parentID] * result;
+                    }
+                    else
+                    {
+                        transforms[i] = result;
+                    }
+                    break;
+                }
+
+                // Guarantee that data is in the area
+                transformIndex = static_cast<int>((j == 0) ? 0 : (j-1));
+                nextTransformIndex = static_cast<int>(j);
+
+
+                float t = (time - animation.tracks[i].keyFrames[transformIndex].time) / (animation.tracks[i].keyFrames[nextTransformIndex].time - animation.tracks[i].keyFrames[transformIndex].time);
+                Vqs result;
+                result.v = (1 - t) * animation.tracks[i].keyFrames[transformIndex].toModelFromBone.v + (t * animation.tracks[i].keyFrames[nextTransformIndex].toModelFromBone.v);
+
+                slerp(animation.tracks[i].keyFrames[transformIndex].toModelFromBone.q, animation.tracks[i].keyFrames[nextTransformIndex].toModelFromBone.q, t, result.q);
+                result.q = (result.q) / magnitude(result.q);
+
+                // Has parent
+                if (skeleton[i].parentID >= 0)
+                {
+                    transforms[i] = transforms[skeleton[i].parentID] * result;
+                }
+                else
+                {
+                    transforms[i] = result;
+                }
+
+                break;
+            }
+        }
+    }
+}
+
+float Mesh::GetAnimationDuration()
+{
+    return animations[0].duration;
 }
 
 bool Mesh::LoadBinFile(const std::string& path)
@@ -571,7 +631,7 @@ bool Mesh::ParseBinFile(FileObject* pFile)
             ReadSkeleton(pFile);
             break;
         case 'anim':
-            // ReadAnimation(pFile);
+            ReadAnimation(pFile);
             break;
         default:
             std::cout << "Unknown Section Type" << std::endl;
@@ -678,8 +738,8 @@ void Mesh::ReadSkeleton(FileObject* pFile)
 
         // @@@@ TODO: figure out appropriate unit bone
         constexpr float BONE_SCALE = 0.5f;
-        initialBones[i * 2] = glm::vec3(0.f, 0.f, 0.f);
-        initialBones[i * 2 + 1] = glm::vec3(BONE_SCALE, 0.f, 0.f);
+        initialBones[i * 2] = /*bone.toModelFromBone * */glm::vec3(0.f, 0.f, 0.f);
+        initialBones[i * 2 + 1] = /*bone.toModelFromBone * */ glm::vec3(BONE_SCALE, 0.f, 0.f);
     }
 }
 
@@ -707,10 +767,7 @@ void Mesh::ReadAnimation(FileObject* pFile)
         {
             KeyFrame& frame = track.keyFrames[k];
             pFile->Read(frame.time);
-            Vqs toParentFromBone;
-            ReadVqs(pFile, toParentFromBone);
-
-            frame.toModelFromBone = GetParentToModelVqs(0, skeleton[i].parentID, k, toParentFromBone);
+            ReadVqs(pFile, frame.toModelFromBone);
         }   // End reading in key frames
     }   // End reading in tracks
 

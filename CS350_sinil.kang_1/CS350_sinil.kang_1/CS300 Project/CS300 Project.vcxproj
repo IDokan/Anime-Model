@@ -189,6 +189,7 @@ xcopy /y /d "..\ThirdParty\assimp\lib\*.dll" "$(TargetDir)"</Command>
     <ClCompile Include="..\Common\Meshes\MeshGenerator.cpp" />
     <ClCompile Include="..\Common\Meshes\models\AssimpMesh.cpp" />
     <ClCompile Include="..\Common\Meshes\models\Model.cpp" />
+    <ClCompile Include="..\Common\Meshes\MyMeshes\BoneObjectMesh.cpp" />
     <ClCompile Include="..\Common\Meshes\MyMeshes\LineMesh.cpp" />
     <ClCompile Include="..\Common\Meshes\MyMeshes\MyMesh.cpp" />
     <ClCompile Include="..\Common\Meshes\MyMeshes\ObjectMesh.cpp" />
@@ -223,6 +224,7 @@ xcopy /y /d "..\ThirdParty\assimp\lib\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="..\Common\Meshes\MeshGenerator.h" />
     <ClInclude Include="..\Common\Meshes\models\AssimpMesh.h" />
     <ClInclude Include="..\Common\Meshes\models\Model.h" />
+    <ClInclude Include="..\Common\Meshes\MyMeshes\BoneObjectMesh.h" />
     <ClInclude Include="..\Common\Meshes\MyMeshes\LineMesh.h" />
     <ClInclude Include="..\Common\Meshes\MyMeshes\MyMesh.h" />
     <ClInclude Include="..\Common\Meshes\MyMeshes\ObjectMesh.h" />

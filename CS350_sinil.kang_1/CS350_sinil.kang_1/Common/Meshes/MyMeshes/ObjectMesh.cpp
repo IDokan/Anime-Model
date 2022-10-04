@@ -35,22 +35,22 @@ bool ObjectMesh::Init(int vertexCount, GLfloat* vertices, GLfloat* normals, GLfl
 	{
 		glGenVertexArrays(1, &VAO);
 	}
-	//else
-	//{
-	//	glDeleteVertexArrays(1, &VAO);
-	//	glGenVertexArrays(1, &VAO);
-	//}
+	else
+	{
+		glDeleteVertexArrays(1, &VAO);
+		glGenVertexArrays(1, &VAO);
+	}
 	glBindVertexArray(VAO);
 
 	if (VBO == 0)
 	{
 		glGenBuffers(1, &VBO);
 	}
-	//else
-	//{
-	//	glDeleteBuffers(1, &VBO);
-	//	glGenBuffers(1, &VBO);
-	//}
+	else
+	{
+		glDeleteBuffers(1, &VBO);
+		glGenBuffers(1, &VBO);
+	}
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * vertexCount, vertices, GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(0);
@@ -60,11 +60,11 @@ bool ObjectMesh::Init(int vertexCount, GLfloat* vertices, GLfloat* normals, GLfl
 	{
 		glGenBuffers(1, &normalBuffer);
 	}
-	//else
-	//{
-	//	glDeleteBuffers(1, &normalBuffer);
-	//	glGenBuffers(1, &normalBuffer);
-	//}
+	else
+	{
+		glDeleteBuffers(1, &normalBuffer);
+		glGenBuffers(1, &normalBuffer);
+	}
 	glBindBuffer(GL_ARRAY_BUFFER, normalBuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * vertexCount, normals, GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(1);
@@ -74,11 +74,11 @@ bool ObjectMesh::Init(int vertexCount, GLfloat* vertices, GLfloat* normals, GLfl
 	{
 		glGenBuffers(1, &uvBuffer);
 	}
-	//else
-	//{
-	//	glDeleteBuffers(1, &uvBuffer);
-	//	glGenBuffers(1, &uvBuffer);
-	//}
+	else
+	{
+		glDeleteBuffers(1, &uvBuffer);
+		glGenBuffers(1, &uvBuffer);
+	}
 	glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 2 * vertexCount, uvs, GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(2);
@@ -88,11 +88,11 @@ bool ObjectMesh::Init(int vertexCount, GLfloat* vertices, GLfloat* normals, GLfl
 	{
 		glGenBuffers(1, &indexBuffer);
 	}
-	//else
-	//{
-	//	glDeleteBuffers(1, &indexBuffer);
-	//	glGenBuffers(1, &indexBuffer);
-	//}
+	else
+	{
+		glDeleteBuffers(1, &indexBuffer);
+		glGenBuffers(1, &indexBuffer);
+	}
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexCount * sizeof(unsigned int), indices, GL_DYNAMIC_DRAW);
 

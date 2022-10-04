@@ -159,6 +159,9 @@
     <ClCompile Include="..\Common\Meshes\binFileSources\binFileStructs.cpp">
       <Filter>Common\Meshes\binFileSources</Filter>
     </ClCompile>
+    <ClCompile Include="..\Common\Meshes\MyMeshes\BoneObjectMesh.cpp">
+      <Filter>Common\Meshes\MyMeshes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\shader.hpp">
@@ -265,6 +268,9 @@
     </ClInclude>
     <ClInclude Include="..\Common\Meshes\binFileSources\FileObject.h">
       <Filter>Common\Meshes\binFileSources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Meshes\MyMeshes\BoneObjectMesh.h">
+      <Filter>Common\Meshes\MyMeshes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

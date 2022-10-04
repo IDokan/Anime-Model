@@ -37,7 +37,7 @@ End Header --------------------------------------------------------*/
 AS1Scene::AS1Scene(int width, int height)
 	:Scene(width, height),
 	angleOfRotate(0), vertexNormalFlag(false), faceNormalFlag(false),
-	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f), skeletonVQSBlockNames(nullptr), skeletonVQSBlockNameSize(-1)
+	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f), skeletonVQSBlockNames(nullptr), skeletonVQSBlockNameSize(-1), timer(0.f), playAnimation(true)
 {
 	sphereMesh = new Mesh();
 	orbitMesh = new Mesh();
@@ -183,18 +183,24 @@ int AS1Scene::Render(float dt)
 	glDisable(GL_DEPTH_TEST);
 	skeletonLines->PrepareDrawing();
 
+
 	glm::vec3 lineColor;
 	lineColor.r = 1.f;
 	lineColor.g = 1.f;
 	lineColor.b = 1.f;
-	const std::vector<Bone>& centerMeshSkeleton = centerMesh->GetSkeleton();
-	const int skeletonCount = static_cast<int>(centerMeshSkeleton.size());
+	std::vector<Vqs> transformsData;
+	if (playAnimation)
+	{
+		timer += dt;
+	}
+	centerMesh->GetAnimationTransform(timer, transformsData);
+	const int skeletonCount = static_cast<int>(transformsData.size());
 	std::vector<glm::mat3> quaternionMatrices(skeletonCount);
 	std::vector<glm::vec3> translations(skeletonCount);
 	std::vector<float> scalers(skeletonCount);
 	for (int i = 0; i < skeletonCount; i++)
 	{
-		Vqs toModel = centerMeshSkeleton[i].GetToModelFromBone();
+		Vqs toModel = transformsData[i];
 		quaternionMatrices[i] = ConvertToMatrix3(toModel.q);
 		translations[i] = toModel.v;
 		scalers[i] = toModel.s;
@@ -209,15 +215,7 @@ int AS1Scene::Render(float dt)
 
 	glEnable(GL_DEPTH_TEST);
 
-	////////////////////////////////////////////////////////////////////////////////////// Draw ends\
-
-	//mainModelShader->Use();
-	//mainModelShader->SendUniformFloatMatrix4("objToWorld", &modelMatrix[0][0]);
-	//mainModelShader->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
-	//glm::vec3 red(1.f, 0.f, 0.f);
-	//mainModelShader->SendUniformFloat3("diffuseColor", &red.x);
-	//
-	//model->Draw(programID);
+	////////////////////////////////////////////////////////////////////////////////////// Draw ends
 	
 	DrawDebuggingObjects();
 
@@ -315,6 +313,7 @@ void AS1Scene::InitGraphics()
 void AS1Scene::AddMembersToGUI()
 {
 	MyImGUI::SetNormalDisplayReferences(&vertexNormalFlag, &faceNormalFlag);
+	MyImGUI::SetAnimationReferences(&playAnimation, &timer, centerMesh->GetAnimationDuration());
 }
 
 void AS1Scene::DrawVertexNormals()

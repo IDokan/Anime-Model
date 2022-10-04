@@ -87,7 +87,8 @@ public:
 
     glm::mat4 calcAdjustBoundingBoxMatrix();
 
-    Vqs GetParentToModelVqs(int animationID, int parentID, int keyFrameID, Vqs childToModel);
+    void GetAnimationTransform(float& time, std::vector<Vqs>& transforms);
+    float GetAnimationDuration();
 /// Bin parser functions
 
     bool LoadBinFile(const std::string& path);
@@ -96,8 +97,6 @@ public:
     void ReadSkeleton(FileObject* pFile);
     void ReadAnimation(FileObject* pFile);
     void ReadVqs(FileObject* pFile, Vqs& vqs);
-
-    Vqs test;
 
 private:
     // Models

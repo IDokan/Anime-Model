@@ -57,6 +57,8 @@ void operator*=(Quaternion& q1, const Quaternion& q2) noexcept;
 [[nodiscard]] Quaternion Inverse(const Quaternion& q) noexcept;
 [[nodiscard]] Quaternion Inverse(Quaternion&& q) noexcept;
 
+void slerp(const Quaternion& q0, const Quaternion& q1, const float t, Quaternion& q);
+
 // Need q be unit quaternion
 [[nodiscard]] glm::mat4 ConvertToMatrix4(const Quaternion& q) noexcept;
 [[nodiscard]] glm::mat3 ConvertToMatrix3(const Quaternion& q) noexcept;
@@ -75,7 +77,10 @@ public:
     float s;
 };
 
+[[nodiscard]] Vqs operator*(const Vqs& vqs, float scaler) noexcept;
+[[nodiscard]] Vqs operator*(float scaler, const Vqs& vqs) noexcept;
 [[nodiscard]] Vqs operator*(const Vqs& lhs, const Vqs& rhs) noexcept;
+[[nodiscard]] Vqs operator+(const Vqs& lhs, const Vqs& rhs) noexcept;
 [[nodiscard]] glm::vec3 operator*(const Vqs& vqs, glm::vec3 v) noexcept;
 
 struct BoneIndex

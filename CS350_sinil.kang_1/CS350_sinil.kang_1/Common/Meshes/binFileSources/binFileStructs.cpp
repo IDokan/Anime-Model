@@ -229,6 +229,53 @@ Quaternion Inverse(Quaternion&& q) noexcept
 	return Quaternion(-q.v, q.s) / magnitude_squared(q);
 }
 
+void slerp(const Quaternion& q0, const Quaternion& q1, const float t, Quaternion& q)
+{
+	float cosHalfTheta = dot(q0, q1);
+
+	if (std::abs(cosHalfTheta) >= 1.0)
+	{
+		q = q0;
+		return;
+	}
+
+	bool reverseQ1 = false;
+	if (cosHalfTheta < 0)	// Always follow the shortest path
+	{
+		reverseQ1 = true;
+		cosHalfTheta = -cosHalfTheta;
+	}
+
+	// Calculate temporary values.
+	const float halfTheta = acos(cosHalfTheta);
+	const float sinHalfTheta = std::sqrt(1.0f - (cosHalfTheta * cosHalfTheta));
+	// if theta = 180 degrees then result is not fully defined
+	// we could rotate around any axis normal to qa or qb
+	if (std::abs(sinHalfTheta) < 0.001)
+	{
+		if (!reverseQ1)
+		{
+			q = (1 - t) * q0 + t * q1;
+		}
+		else
+		{
+			q = (1 - t) * q0 - t * q1;
+		}
+		return;
+	}
+
+	const float A = sin((1 - t) * halfTheta) / sinHalfTheta;
+	const float B = sin(t * halfTheta) / sinHalfTheta;
+	if (!reverseQ1)
+	{
+		q = A * q0 + B * q1;
+	}
+	else
+	{
+		q = A * q0 - B * q1;
+	}
+}
+
 glm::mat4 ConvertToMatrix4(const Quaternion& q) noexcept
 {
 	// if (magnitude_squared(q) < 1.f - std::numeric_limits<float>::epsilon() ||
@@ -259,16 +306,30 @@ glm::mat3 ConvertToMatrix3(const Quaternion& q) noexcept
 	// 	abort();
 	// }
 	glm::mat3 result;
-	result[0][0] = 1 - 2 * (q.y * q.y + q.z * q.z);
-	result[0][1] = 2 * (q.x * q.y + q.s * q.z);
-	result[0][2] = 2 * (q.x * q.z - q.s * q.y);
-	result[1][0] = 2 * (q.x * q.y - q.s * q.z);
-	result[1][1] = 1 - 2 * (q.x * q.x + q.z * q.z);
-	result[1][2] = 2 * (q.y * q.z + q.s * q.x);
-	result[2][0] = 2 * (q.x * q.z + q.s * q.y);
-	result[2][1] = 2 * (q.y * q.z - q.s * q.x);
-	result[2][2] = 1 - 2 * (q.x * q.x + q.y * q.y);
+	result[0][0] = 1.f - 2.f * (q.y * q.y + q.z * q.z);
+	result[0][1] = 2.f * (q.x * q.y + q.s * q.z);
+	result[0][2] = 2.f * (q.x * q.z - q.s * q.y);
+	result[1][0] = 2.f * (q.x * q.y - q.s * q.z);
+	result[1][1] = 1.f - 2.f * (q.x * q.x + q.z * q.z);
+	result[1][2] = 2.f * (q.y * q.z + q.s * q.x);
+	result[2][0] = 2.f * (q.x * q.z + q.s * q.y);
+	result[2][1] = 2.f * (q.y * q.z - q.s * q.x);
+	result[2][2] = 1.f - 2.f * (q.x * q.x + q.y * q.y);
 	return result;
+}
+
+Vqs operator*(const Vqs& vqs, float scaler) noexcept
+{
+	Vqs result;
+	result.s = vqs.s * scaler;
+	result.v = vqs.v * scaler;
+	result.q = vqs.q * scaler;
+	return result;
+}
+
+Vqs operator*(float scaler, const Vqs& vqs) noexcept
+{
+	return vqs * scaler;
 }
 
 Vqs operator*(const Vqs& lhs, const Vqs& rhs) noexcept
@@ -277,6 +338,15 @@ Vqs operator*(const Vqs& lhs, const Vqs& rhs) noexcept
 	result.s = lhs.s * rhs.s;
 	result.q = lhs.q * rhs.q;
 	result.v = lhs * rhs.v;
+	return result;
+}
+
+Vqs operator+(const Vqs& lhs, const Vqs& rhs) noexcept
+{
+	Vqs result;
+	result.q = lhs.q + rhs.q;
+	result.v = lhs.v + rhs.v;
+	result.s = lhs.s + rhs.s;
 	return result;
 }
 
