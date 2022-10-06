@@ -313,6 +313,12 @@
     <None Include="..\Common\shaders\normalUniformShader.vert">
       <Filter>Common\shaders</Filter>
     </None>
+    <None Include="..\Common\shaders\SkinShader.frag">
+      <Filter>Common\shaders</Filter>
+    </None>
+    <None Include="..\Common\shaders\SkinShader.vert">
+      <Filter>Common\shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\myGUI\LICENSE.txt">

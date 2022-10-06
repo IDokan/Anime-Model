@@ -258,6 +258,8 @@ xcopy /y /d "..\ThirdParty\assimp\lib\*.dll" "$(TargetDir)"</Command>
     <None Include="..\Common\shaders\normalDisplayShader.vert" />
     <None Include="..\Common\shaders\normalUniformShader.frag" />
     <None Include="..\Common\shaders\normalUniformShader.vert" />
+    <None Include="..\Common\shaders\SkinShader.frag" />
+    <None Include="..\Common\shaders\SkinShader.vert" />
     <None Include="..\myGUI\.editorconfig" />
     <None Include="..\myGUI\.gitattributes" />
     <None Include="..\myGUI\.gitignore" />

@@ -2,8 +2,8 @@
 //Copyright (C) FALL2021 DigiPen Institute of Technology.
 //Reproduction or disclosure of this file or its contents without the prior written
 //consent of DigiPen Institute of Technology is prohibited.
-//File Name: normalDisplayShader.frag
-//Purpose: shader for vertex and face normals.
+//File Name: As1DiffuseShader.frag
+//Purpose: Ambient and diffuse shader for assignment 1
 //Language: GLSL
 //Platform: Windows SDK version: 10.0.19041.0, OS: Windows 10. GPU: NVIDIA GeForce840M. OpenGL Driver version: 10.18.15.4279, 8-24-2015
 //Project: sinil.kang_CS300_1
@@ -12,25 +12,16 @@
 //End Header --------------------------------------------------------*/
 
 #version 410 core
-layout (location = 0) in vec3 position;
 
-uniform mat4 worldToNDC;
-uniform mat4 objToWorld;
+uniform vec3 diffuseColor;
 
-struct TheStruct
-{
-	mat4 toModelFromBone;
-};
+in vec3 fragPos;
+in vec3 vertexNormal;
+in vec3 viewVector;
 
-layout(std140) uniform Block
-{
-	TheStruct item[99];
-} data;
+out vec3 color;
 
 void main()
 {
-	int id = gl_VertexID / 2;
-	vec4 tp = data.item[id].toModelFromBone * vec4(position, 1.f);
-	
-	gl_Position = worldToNDC * objToWorld * tp;
+	color = diffuseColor * dot(vertexNormal, viewVector);
 }

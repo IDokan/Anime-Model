@@ -36,6 +36,7 @@ public:
 	void SendUniformInt(const char* uniformName, const int uniformData);
 	// Problem
 	bool SendUniformBlockFloatVQS(const char* blockName, const GLsizei blockPropertyCount, const char* const* blockPropertyNames, const glm::mat3* blockPropertyDataMatrix, const glm::vec3* blockPropertyDataVector, const float* blockPropertyDataScaler);
+	bool SendUniformBlockMatrix4(const char* blockName, const GLsizei blockPropertyCount, const char* const* blockPropertyNames, const glm::mat4* blockPropertyData);
 
 	// It worked.
 	bool SendUniformBlockVector3s(const GLchar* blockName, const GLsizei blockPropertyCount, const GLchar* const* blockPropertyNames, const float** blockPropertyData);

@@ -34,10 +34,13 @@ End Header --------------------------------------------------------*/
 
 #include <../Common/Meshes/binFileSources/binFileStructs.h>
 
+#include <../Common/Meshes/MyMeshes/BoneObjectMesh.h>
+
 AS1Scene::AS1Scene(int width, int height)
 	:Scene(width, height),
 	angleOfRotate(0), vertexNormalFlag(false), faceNormalFlag(false),
-	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f), skeletonVQSBlockNames(nullptr), skeletonVQSBlockNameSize(-1), timer(0.f), playAnimation(true)
+	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f),
+	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(true)
 {
 	sphereMesh = new Mesh();
 	orbitMesh = new Mesh();
@@ -52,9 +55,9 @@ AS1Scene::AS1Scene(int width, int height)
 	spheres = new ObjectMesh();
 	sphereOrbit = new LineMesh();
 	floorObjMesh = new ObjectMesh();
-	centerObjMesh = new ObjectMesh();
+	centerObjMesh = new BoneObjectMesh();
 
- 	sphericalViewPoint = Point(1.f, 0.f, 3.14f);
+	sphericalViewPoint = Point(1.f, 0.f, 3.14f);
 	cartesianViewVector = Vector(0.f, 0.f, -1.f);
 	cartesianRightVector = Vector(1.f);
 	cartesianUpVector = Vector(0.f, 1.f, 0.f);
@@ -90,7 +93,7 @@ int AS1Scene::Init()
 #endif
 
 	centerMesh->LoadBinFile("../Common/Meshes/models/Tad.bin");
-	CreateSkeletonVQSBlockNames(centerMesh->GetSkeleton().size());
+	CreateAnimationMat4BlockNames(centerMesh->GetSkeleton().size());
 
 	AddMembersToGUI();
 
@@ -114,8 +117,8 @@ void AS1Scene::LoadAllShaders()
 	normalUniformProgramID = LoadShaders("../Common/shaders/normalUniformShader.vert",
 		"../Common/shaders/normalUniformShader.frag");
 
-	//
-	// mainModelShader = new AssimpShader(programID);
+	skinShader = LoadShaders("../Common/shaders/SkinShader.vert",
+		"../Common/shaders/SkinShader.frag");
 }
 
 int AS1Scene::preRender(float dt)
@@ -153,6 +156,11 @@ int AS1Scene::preRender(float dt)
 
 int AS1Scene::Render(float dt)
 {
+	if (playAnimation)
+	{
+		timer += dt;
+	}
+
 	floorObjMesh->SetShader(programID);
 	floorObjMesh->PrepareDrawing();
 
@@ -168,11 +176,24 @@ int AS1Scene::Render(float dt)
 	floorObjMesh->Draw(floorMesh->getIndexBufferSize());
 
 
-	centerObjMesh->SetShader(programID);
+	std::vector<Vqs> toBoneFromModel;
+	centerMesh->GetToBoneFromModel(toBoneFromModel);
+	std::vector<Vqs> transformsData;
+	centerMesh->GetAnimationTransform(timer, transformsData, false);
+	const int skeletonCount = static_cast<int>(transformsData.size());
+	std::vector<glm::mat4> animationMat4Data(skeletonCount);
+	for (int i = 0; i < skeletonCount; i++)
+	{
+		Vqs toModel = transformsData[i] * toBoneFromModel[i];
+		toModel.q = toModel.q / magnitude(toModel.q);
+		animationMat4Data[i] = glm::translate(toModel.v) * ConvertToMatrix4(toModel.q) * glm::scale(glm::vec3(toModel.s));
+	}
+
 	centerObjMesh->PrepareDrawing();
 
 	centerObjMesh->SendUniformFloatMatrix4("objToWorld", &centerMatrix[0][0]);
 	centerObjMesh->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
+	centerObjMesh->SendUniformBlockMatrix4("Block", skeletonCount, animationMat4BlockNames, animationMat4Data.data());
 	glm::vec3 red(1.f, 0.f, 0.f);
 	centerObjMesh->SendUniformFloat3("diffuseColor", &red.x);
 	centerObjMesh->SendUniformFloat3("camera", &cameraP.x);
@@ -188,26 +209,7 @@ int AS1Scene::Render(float dt)
 	lineColor.r = 1.f;
 	lineColor.g = 1.f;
 	lineColor.b = 1.f;
-	std::vector<Vqs> transformsData;
-	if (playAnimation)
-	{
-		timer += dt;
-	}
-	centerMesh->GetAnimationTransform(timer, transformsData);
-	const int skeletonCount = static_cast<int>(transformsData.size());
-	std::vector<glm::mat3> quaternionMatrices(skeletonCount);
-	std::vector<glm::vec3> translations(skeletonCount);
-	std::vector<float> scalers(skeletonCount);
-	for (int i = 0; i < skeletonCount; i++)
-	{
-		Vqs toModel = transformsData[i];
-		quaternionMatrices[i] = ConvertToMatrix3(toModel.q);
-		translations[i] = toModel.v;
-		scalers[i] = toModel.s;
-	}
-	// Since VQS has three parameters, block property count should be multiplied by 3.
-	const GLsizei blockPropertyCount = skeletonCount * 3;
-	skeletonLines->SendUniformBlockFloatVQS("Block", blockPropertyCount, skeletonVQSBlockNames, quaternionMatrices.data(), translations.data(), scalers.data());
+	// skeletonLines->SendUniformBlockMatrix4("Block", skeletonCount, animationMat4BlockNames, animationMat4Data.data());
 	skeletonLines->SendUniformFloat3("lineColor", reinterpret_cast<float*>(&lineColor));
 	skeletonLines->SendUniformFloatMatrix4("objToWorld", &centerMatrix[0][0]);
 	skeletonLines->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
@@ -216,7 +218,7 @@ int AS1Scene::Render(float dt)
 	glEnable(GL_DEPTH_TEST);
 
 	////////////////////////////////////////////////////////////////////////////////////// Draw ends
-	
+
 	DrawDebuggingObjects();
 
 	return 0;
@@ -234,13 +236,14 @@ void AS1Scene::CleanUp()
 	glDeleteProgram(programID);
 	glDeleteProgram(normalDisplayProgramID);
 	glDeleteProgram(normalUniformProgramID);
+	glDeleteProgram(skinShader);
 
 
 	MyImGUI::ClearImGUI();
 
 	textureManager.Clear();
 
-	DestroySkeletonVQSBlockNames();
+	DestroyAnimationMat4BlockNames();
 
 	delete sphereMesh;
 	delete normalMesh;
@@ -286,9 +289,9 @@ void AS1Scene::InitGraphics()
 	floorObjMesh->Init(floorMesh->getVertexCount(), floorMesh->getVertexBuffer(), floorMesh->getVertexNormals(), reinterpret_cast<GLfloat*>(uvs.data()),
 		floorMesh->getIndexBufferSize(), floorMesh->getIndexBuffer());
 
-	centerObjMesh->SetShader(programID);
+	centerObjMesh->SetShader(skinShader);
 	centerObjMesh->Init(centerMesh->getVertexCount(), centerMesh->getVertexBuffer(), centerMesh->getVertexNormals(), centerMesh->getVertexUVs(),
-		centerMesh->getIndexBufferSize(), centerMesh->getIndexBuffer());
+		centerMesh->GetBoneIDs(), centerMesh->GetBoneWeights(), centerMesh->getIndexBufferSize(), centerMesh->getIndexBuffer());
 
 	// normal inits
 	normalMesh->SetShader(normalDisplayProgramID);
@@ -488,50 +491,34 @@ void AS1Scene::PrepareSkeletons()
 	skeletonLines->Init(centerMesh->GetBoneCountForDisplay(), centerMesh->GetBonesForDisplay());
 }
 
-void AS1Scene::CreateSkeletonVQSBlockNames(const size_t size)
+void AS1Scene::CreateAnimationMat4BlockNames(const size_t size)
 {
-	skeletonVQSBlockNameSize = static_cast<GLsizei>(size * 3);
-	skeletonVQSBlockNames = new GLchar * [skeletonVQSBlockNameSize];
+	animationMat4BlockNameSize = static_cast<GLsizei>(size);
+	animationMat4BlockNames = new GLchar * [animationMat4BlockNameSize];
 	constexpr int MAX_STRING_SIZE = 40;
 
-	for (int i = 0; i < skeletonVQSBlockNameSize; i++)
+	for (int i = 0; i < animationMat4BlockNameSize; i++)
 	{
-		skeletonVQSBlockNames[i] = new GLchar[MAX_STRING_SIZE];
+		animationMat4BlockNames[i] = new GLchar[MAX_STRING_SIZE];
 	}
 
-	for (int i = 0; i < skeletonVQSBlockNameSize; i++)
+	for (int i = 0; i < animationMat4BlockNameSize; i++)
 	{
-		int blockIndex = i / 3;
 		std::string result;
-		switch(i % 3)
-		{
-		case 0:
-			result = std::string(std::string("Block.item[") + std::to_string(blockIndex) + std::string("].toModelFromBone"));
-			strcpy(skeletonVQSBlockNames[i], result.c_str());
-			break;
-		case 1:
-			result = std::string(std::string("Block.item[") + std::to_string(blockIndex) + std::string("].v")).c_str();
-			strcpy(skeletonVQSBlockNames[i], result.c_str());
-			break;
-		case 2:
-			result = std::string(std::string("Block.item[") + std::to_string(blockIndex) + std::string("].s")).c_str();
-			strcpy(skeletonVQSBlockNames[i], result.c_str());
-			break;
-		default:
-			break;
-		}
+		result = std::string(std::string("Block.item[") + std::to_string(i) + std::string("].toModelFromBone"));
+		strcpy(animationMat4BlockNames[i], result.c_str());
 	}
 }
 
-void AS1Scene::DestroySkeletonVQSBlockNames()
+void AS1Scene::DestroyAnimationMat4BlockNames()
 {
-	if (skeletonVQSBlockNameSize < 0)
+	if (animationMat4BlockNameSize < 0)
 	{
 		return;
 	}
-	for (size_t i = 0; i < skeletonVQSBlockNameSize; i++)
+	for (size_t i = 0; i < animationMat4BlockNameSize; i++)
 	{
-		delete[] skeletonVQSBlockNames[i];
+		delete[] animationMat4BlockNames[i];
 	}
-	delete[] skeletonVQSBlockNames;
+	delete[] animationMat4BlockNames;
 }

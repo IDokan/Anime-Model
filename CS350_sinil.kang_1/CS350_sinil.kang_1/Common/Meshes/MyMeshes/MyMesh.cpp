@@ -115,6 +115,58 @@ bool MyMesh::SendUniformBlockFloatVQS(const char* blockName, const GLsizei block
 	return true;
 }
 
+bool MyMesh::SendUniformBlockMatrix4(const char* blockName, const GLsizei blockPropertyCount, const char* const* blockPropertyNames, const glm::mat4* blockPropertyData)
+{
+	glUseProgram(programIDReference);
+	glBindVertexArray(VAO);
+
+	uniformBlockIndex = glGetUniformBlockIndex(programIDReference, blockName);
+	if (uniformBlockIndex == GL_INVALID_INDEX)
+	{
+		std::cout << blockName << " is not applied, uniformBlockIndex == GL_INVALID_INDEX" << std::endl;
+		return false;
+	}
+
+	GLint uniformBlockSize = 0;
+	glGetActiveUniformBlockiv(programIDReference, uniformBlockIndex, GL_UNIFORM_BLOCK_DATA_SIZE, &uniformBlockSize);
+
+	GLuint* blockPropertyIndices = new GLuint[blockPropertyCount];
+	glGetUniformIndices(programIDReference, blockPropertyCount, blockPropertyNames, blockPropertyIndices);
+
+	if (blockPropertyIndices[0] == GL_INVALID_INDEX)
+	{
+		std::cout << blockName << " is not applied, blockPropertyIndices[0] == GL_INVALID_INDEX" << std::endl;
+		return false;
+	}
+
+	GLint* offsets = new GLint[blockPropertyCount];
+	glGetActiveUniformsiv(programIDReference, blockPropertyCount, blockPropertyIndices, GL_UNIFORM_OFFSET, offsets);
+	GLenum result = glGetError();
+
+	char* buffer = new char[uniformBlockSize];
+	for (int i = 0; i < blockPropertyCount; i ++)
+	{
+		// if the destination write uniform data is valid,
+		if (buffer + offsets[i] < &buffer[uniformBlockSize])
+		{
+			memcpy_s(buffer + offsets[i], sizeof(float) * 16, &blockPropertyData[i], sizeof(float) * 16);
+		}
+	}
+
+	if (uniformBlockBuffer == 0)
+	{
+		glGenBuffers(1, &uniformBlockBuffer);
+		glBindBuffer(GL_UNIFORM_BUFFER, uniformBlockBuffer);
+	}
+
+	glBufferData(GL_UNIFORM_BUFFER, uniformBlockSize, buffer, GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_UNIFORM_BUFFER, uniformBlockIndex, uniformBlockBuffer);
+
+	delete[] buffer;
+
+	return true;
+}
+
 
 bool MyMesh::SendUniformBlockVector3s(const GLchar* blockName, const GLsizei blockPropertyCount, const GLchar* const* blockPropertyNames, const float** blockPropertyData)
 {	// Step 1.	Design layout of the uniform Blocks

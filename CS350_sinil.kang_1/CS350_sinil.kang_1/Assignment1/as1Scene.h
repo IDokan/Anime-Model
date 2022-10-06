@@ -36,6 +36,7 @@ class LineMesh;
 class ObjectMesh;
 class Model;
 class AssimpShader;
+class BoneObjectMesh;
 
 class AS1Scene : public Scene
 {
@@ -71,18 +72,19 @@ private:
 
 	void PrepareSkeletons();
 
-	void CreateSkeletonVQSBlockNames(const size_t size);
-	void DestroySkeletonVQSBlockNames();
+	void CreateAnimationMat4BlockNames(const size_t size);
+	void DestroyAnimationMat4BlockNames();
 
 private:
 	Mesh* sphereMesh;
 	Mesh* orbitMesh;
 	Mesh* floorMesh;
 	Mesh* centerMesh;
-	ObjectMesh* centerObjMesh;
+	BoneObjectMesh* centerObjMesh;
 
 	// Shaders
 	GLuint programID;
+	GLuint skinShader;
 	ObjectMesh* spheres;
 	ObjectMesh* floorObjMesh;
 	// Normal Drawing
@@ -144,8 +146,8 @@ private:
 
 	MyObjReader* myReader;
 
-	GLchar** skeletonVQSBlockNames;
-	GLsizei skeletonVQSBlockNameSize;
+	GLchar** animationMat4BlockNames;
+	GLsizei animationMat4BlockNameSize;
 
 	float timer;
 	bool playAnimation;

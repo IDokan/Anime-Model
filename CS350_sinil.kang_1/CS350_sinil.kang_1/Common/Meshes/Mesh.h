@@ -21,6 +21,7 @@ End Header --------------------------------------------------------*/
 #include <vector>
 #include <string>
 #include <glm/glm.hpp>
+#include <GL/glew.h>
 #include "../Common/Meshes/binFileSources/binFileStructs.h"
 
 typedef float GLfloat;
@@ -52,6 +53,9 @@ public:
     GLfloat *getVertexNormalsForDisplay();  // attribute 0
     GLfloat* getFaceNormalsForDisplay();
     GLfloat* GetBonesForDisplay();
+
+    GLubyte* GetBoneIDs();
+    GLfloat* GetBoneWeights();
 
     unsigned int getVertexBufferSize();
     unsigned int getVertexCount();
@@ -87,7 +91,8 @@ public:
 
     glm::mat4 calcAdjustBoundingBoxMatrix();
 
-    void GetAnimationTransform(float& time, std::vector<Vqs>& transforms);
+    void GetToBoneFromModel(std::vector<Vqs>& toBoneFromModel);
+    void GetAnimationTransform(float& time, std::vector<Vqs>& transforms, bool isSkeleton);
     float GetAnimationDuration();
 /// Bin parser functions
 

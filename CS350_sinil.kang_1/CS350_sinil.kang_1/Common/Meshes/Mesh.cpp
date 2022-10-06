@@ -88,6 +88,16 @@ GLfloat* Mesh::GetBonesForDisplay()
     return reinterpret_cast<GLfloat*>(initialBones.data());
 }
 
+GLubyte* Mesh::GetBoneIDs()
+{
+    return reinterpret_cast<GLubyte*>(boneIndices.data());
+}
+
+GLfloat* Mesh::GetBoneWeights()
+{
+    return reinterpret_cast<GLfloat*>(boneWeights.data());
+}
+
 GLuint *Mesh::getIndexBuffer()
 {
     return vertexIndices.data();
@@ -491,7 +501,17 @@ glm::mat4 Mesh::calcAdjustBoundingBoxMatrix()
     return glm::scale(2.f / getModelScale()) * glm::translate(-getModelCentroid());
 }
 
-void Mesh::GetAnimationTransform(float& time, std::vector<Vqs>& transforms)
+void Mesh::GetToBoneFromModel(std::vector<Vqs>& toBoneFromModel)
+{
+    int skeletonSize = static_cast<int>(skeleton.size());
+    toBoneFromModel.resize(skeletonSize);
+    for (int i = 0; i < skeletonSize; i++)
+    {
+        toBoneFromModel[i] = skeleton[i].toBoneFromModel;
+    }
+}
+
+void Mesh::GetAnimationTransform(float& time, std::vector<Vqs>& transforms, bool isSkeleton)
 {
     Animation animation = animations[0];
     if (time > animation.duration)
@@ -738,8 +758,8 @@ void Mesh::ReadSkeleton(FileObject* pFile)
 
         // @@@@ TODO: figure out appropriate unit bone
         constexpr float BONE_SCALE = 0.5f;
-        initialBones[i * 2] = /*bone.toModelFromBone * */glm::vec3(0.f, 0.f, 0.f);
-        initialBones[i * 2 + 1] = /*bone.toModelFromBone * */ glm::vec3(BONE_SCALE, 0.f, 0.f);
+        initialBones[i * 2] = bone.toModelFromBone * glm::vec3(0.f, 0.f, 0.f);
+        initialBones[i * 2 + 1] = bone.toModelFromBone *  glm::vec3(BONE_SCALE, 0.f, 0.f);
     }
 }
 
