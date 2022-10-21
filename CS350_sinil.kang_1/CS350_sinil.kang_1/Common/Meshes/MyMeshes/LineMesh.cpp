@@ -32,7 +32,7 @@ bool LineMesh::Init(int vertexCount, GLfloat* vertices)
 
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * vertexCount, vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * vertexCount, vertices, GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, nullptr);
 
@@ -43,9 +43,11 @@ void LineMesh::PrepareDrawing()
 {
 	glUseProgram(programIDReference);
 	glBindVertexArray(VAO);
+	glEnableVertexAttribArray(0);
 }
 
 void LineMesh::Draw(int drawCount)
 {
 	glDrawArrays(GL_LINES, 0, drawCount);
+	glDisableVertexAttribArray(0);
 }

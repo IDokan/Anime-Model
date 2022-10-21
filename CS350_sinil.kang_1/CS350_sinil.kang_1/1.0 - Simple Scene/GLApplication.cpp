@@ -240,8 +240,6 @@ int main()
 
         input.TriggeredReset();
 
-        std::cout << input.GetMousePosition().x << ", " << input.GetMousePosition().y << std::endl;
-        
         glfwPollEvents();
     } // Check if the ESC key was pressed or the window was closed
     while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwGetKey(guiWindow, GLFW_KEY_ESCAPE) != GLFW_PRESS &&

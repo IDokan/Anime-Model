@@ -103,13 +103,6 @@ int AS1Scene::Init()
 
 	InitPath();
 	BuildTable();
-
-	std::cout << "Test inverse function" << std::endl;
-	for (int i = 0; i <= 20; i++)
-	{
-		std::cout << DistanceByTime(i * 0.05f * 8) << ", ";
-	}
-	std::cout << std::endl;
 	// Assume whole time is 8 seconds, 
 		// 1 seconds to finish a track.
 	
@@ -148,6 +141,11 @@ void AS1Scene::LoadAllShaders()
 
 int AS1Scene::preRender(float dt)
 {
+	if (playAnimation)
+	{
+		timer += dt;
+	}
+
 	glClearColor(clearColor.x, clearColor.y, clearColor.z, 1.f);
 
 	glEnable(GL_DEPTH_TEST);
@@ -156,12 +154,13 @@ int AS1Scene::preRender(float dt)
 
 	glm::vec3 scaleVector = glm::vec3(1.f);
 	const float displacementToPi = glm::pi<float>() / 180.f;
+	glm::vec3 position = BezierCurve(InverseArcLength(DistanceByTime(timer)));
 	centerMatrix =
-		glm::translate(glm::vec3(0.f, -5.f, 0.f)) *
+		glm::translate(position) *
 		glm::rotate(180.f * displacementToPi, glm::vec3(0.f, 1.f, 0.f)) *
 		glm::scale(scaleVector);
 	simpleCenterMatrix =
-		glm::translate(glm::vec3(0.f, -4.f, 0.f)) *
+		glm::translate(position) *
 		glm::rotate(180.f * displacementToPi, glm::vec3(0.f, 1.f, 0.f)) *
 		glm::scale(scaleVector);
 	floorMatrix = glm::translate(glm::vec3(0.f, -5.f, 0.f)) * glm::rotate(glm::half_pi<float>(), glm::vec3(1.f, 0.f, 0.f)) * glm::scale(glm::vec3(10.f, 10.f, 1.f)) * floorMesh->calcAdjustBoundingBoxMatrix();
@@ -183,10 +182,6 @@ int AS1Scene::preRender(float dt)
 
 int AS1Scene::Render(float dt)
 {
-	if (playAnimation)
-	{
-		timer += dt;
-	}
 
 	floorObjMesh->SetShader(programID);
 	floorObjMesh->PrepareDrawing();
@@ -353,6 +348,11 @@ void AS1Scene::InitControlPoints()
 	controlPoints[6] = glm::vec3(0.f, 0.f, -1.f);
 	controlPoints[7] = glm::vec3(0.5f, 0.f, -0.5f);
 
+	for (int i = 0; i < pointSize; i++)
+	{
+		controlPoints[i] *= 1.f;
+	}
+
 	interpolatedPointsForCurve.resize(pointSize);
 	for (int i = 0; i < pointSize; i++)
 	{
@@ -503,7 +503,7 @@ float AS1Scene::InverseArcLength(float s)
 	// Get 2 * delta arc length
 	float tmp = (++arcLengthTable.begin())->second;
 	float tmp2 = arcLengthTable.begin()->second;
-	const float arcLengthEpsilon = tmp - tmp2;
+	const float arcLengthEpsilon = 5.f * (tmp - tmp2);
 	do
 	{
 		um = (ua + ub) / 2.f;
