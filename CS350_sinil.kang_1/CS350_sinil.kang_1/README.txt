@@ -1,28 +1,41 @@
 /* Start Header -------------------------------------------------------
-Copyright (C) FALL2021 DigiPen Institute of Technology.
+Copyright (C) FALL2022 DigiPen Institute of Technology.
 Reproduction or disclosure of this file or its contents without the prior written
 consent of DigiPen Institute of Technology is prohibited.
 File Name: README.txt
 Purpose: describe overview of my application
-Language: English none of computer language is used in here.
+Language: English; none of computer language is used in here.
 Platform: Compiler version: Compiler does not need for README, OS: Windows 10. GPU: NVIDIA GeForce840M. OpenGL Driver version: 10.18.15.4279, 8-24-2015
-Project: 
+Project: Project #1: Hierarchical Modeling and Animation
 Author: Sinil Kang = sinil.kang = Colleague ID: 0052782
-Creation date: 8/29/2022
+Creation date: 10/9/2022
 End Header --------------------------------------------------------*/
 
+A. Algorithms I used
+	I used Slerp to interpolate animation key frames.
+		It followed the shortest path(when from 10 degree to 350 degree, it goes 10->0(360)->350).
+B. How to compile and run the executable
+	Open CS300 Project.sln file.
+	If build mode is Debug, change build mode to Release at the top left. It is located at left of Local Windows Debugger which has green triangle icon. (Press Debug and choose Release mode)
+	Press Ctrl + F5 to compile and run it.
 
-1. How to use my interface.
+C. Code comments
+	Assignment1/as1Scene.cpp&.h - contains scene codes
+	Common/Meshes/binFileSources/binFileStructs.cpp&.h - contains VQS, Quaternion codes.
+	Common/Meshes/Mesh.cpp&.h - has how to load model file. 
+		Especially LoadBinFile(const std::string& path), ParseBinFile(FileObject* pFile), ReadMesh(FileObject* pFile), ReadSkeleton(FileObject* pFile), ReadAnimation(FileObject* pFile), ReadVqs(FileObject* pFile, Vqs& vqs)
+	Common/shaders/SkinShader.vert&.frag, normalUniformShader.vert&.frag - contains skinned mesh and skeleton shader codes
+	
+	Common/Meshes/Mesh.cpp - Mesh::GetAnimatinoTransform function contains hierarchical transformation implementation.
 
-2. How to use the application
+D. How to move Camera and GUI description
+WASD to move camera.
+During move, press left shift to move faster.
+Press right mouse button to look around.
+Press E to move up.
+Press Q to move down.
 
-3. Completed assignment parts
-
-4. Which part has NOT been completed
-
-5. Where the relevant source codes.
-
-6. Where my program is tested
-6-a. OS: Windows 10. GPU: NVIDIA GeForce840M. OpenGL Driver version: 10.18.15.4279, 8-24-2015
-
-7. How many I spend
+Basic Information section shows FPS.
+Skeleton section allows you to control toggle displaying skeleton
+Animation section help you stop animation and display specific time of the animation.
+Model section give you control to change complex model to simple model

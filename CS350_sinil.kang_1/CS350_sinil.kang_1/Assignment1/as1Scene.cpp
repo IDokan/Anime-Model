@@ -35,17 +35,20 @@ End Header --------------------------------------------------------*/
 #include <../Common/Meshes/binFileSources/binFileStructs.h>
 
 #include <../Common/Meshes/MyMeshes/BoneObjectMesh.h>
+#include <iostream>
+#include <queue>
 
 AS1Scene::AS1Scene(int width, int height)
 	:Scene(width, height),
-	angleOfRotate(0), vertexNormalFlag(false), faceNormalFlag(false),
+	angleOfRotate(0), showSkeleton(true),
 	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f),
-	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(true)
+	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(true), showSimpleModel(true)
 {
 	sphereMesh = new Mesh();
 	orbitMesh = new Mesh();
 	floorMesh = new Mesh();
 	centerMesh = new Mesh(true);
+	simpleMesh = new Mesh(true);
 
 	centerMatrix = glm::mat4(1.f);
 	// modelMatrix = glm::mat4(1.f);
@@ -56,6 +59,7 @@ AS1Scene::AS1Scene(int width, int height)
 	sphereOrbit = new LineMesh();
 	floorObjMesh = new ObjectMesh();
 	centerObjMesh = new BoneObjectMesh();
+	simpleObjMesh = new BoneObjectMesh();
 
 	sphericalViewPoint = Point(1.f, 0.f, 3.14f);
 	cartesianViewVector = Vector(0.f, 0.f, -1.f);
@@ -76,6 +80,9 @@ AS1Scene::AS1Scene(int width, int height)
 	myReader = new MyObjReader();
 
 	skeletonLines = new LineMesh();
+	simpleSkeletonLines = new LineMesh();
+
+	pathLine = new LineMesh();
 }
 
 AS1Scene::~AS1Scene()
@@ -92,8 +99,26 @@ int AS1Scene::Init()
 	// model = new Model("../Common/Meshes/models/Bomber.bin");
 #endif
 
+
+
+	InitPath();
+	BuildTable();
+
+	std::cout << "Test inverse function" << std::endl;
+	for (int i = 0; i <= 20; i++)
+	{
+		std::cout << DistanceByTime(i * 0.05f * 8) << ", ";
+	}
+	std::cout << std::endl;
+	// Assume whole time is 8 seconds, 
+		// 1 seconds to finish a track.
+	
+
 	centerMesh->LoadBinFile("../Common/Meshes/models/Tad.bin");
-	CreateAnimationMat4BlockNames(centerMesh->GetSkeleton().size());
+	CreateAnimationMat4BlockNames(animationMat4BlockNames, animationMat4BlockNameSize, centerMesh->GetSkeleton().size());
+	simpleMesh->LoadBinFile("../Common/Meshes/models/Bomber.bin");
+	CreateAnimationMat4BlockNames(simpleAnimationMat4BlockNames, simpleAnimationMat4BlockNameSize, simpleMesh->GetSkeleton().size());
+
 
 	AddMembersToGUI();
 
@@ -131,10 +156,12 @@ int AS1Scene::preRender(float dt)
 
 	glm::vec3 scaleVector = glm::vec3(1.f);
 	const float displacementToPi = glm::pi<float>() / 180.f;
-	//modelMatrix = 
-	//	glm::rotate(180.f * displacementToPi, glm::vec3(0.f, 1.f, 0.f)) *
-	//	glm::scale(scaleVector) * model->CalcAdjustBoundingBoxMatrix();
 	centerMatrix =
+		glm::translate(glm::vec3(0.f, -5.f, 0.f)) *
+		glm::rotate(180.f * displacementToPi, glm::vec3(0.f, 1.f, 0.f)) *
+		glm::scale(scaleVector);
+	simpleCenterMatrix =
+		glm::translate(glm::vec3(0.f, -4.f, 0.f)) *
 		glm::rotate(180.f * displacementToPi, glm::vec3(0.f, 1.f, 0.f)) *
 		glm::scale(scaleVector);
 	floorMatrix = glm::translate(glm::vec3(0.f, -5.f, 0.f)) * glm::rotate(glm::half_pi<float>(), glm::vec3(1.f, 0.f, 0.f)) * glm::scale(glm::vec3(10.f, 10.f, 1.f)) * floorMesh->calcAdjustBoundingBoxMatrix();
@@ -175,51 +202,19 @@ int AS1Scene::Render(float dt)
 
 	floorObjMesh->Draw(floorMesh->getIndexBufferSize());
 
-
-	std::vector<Vqs> toBoneFromModel;
-	centerMesh->GetToBoneFromModel(toBoneFromModel);
-	std::vector<Vqs> transformsData;
-	centerMesh->GetAnimationTransform(timer, transformsData, false);
-	const int skeletonCount = static_cast<int>(transformsData.size());
-	std::vector<glm::mat4> animationMat4Data(skeletonCount);
-	for (int i = 0; i < skeletonCount; i++)
+	if (showSimpleModel)
 	{
-		Vqs toModel = transformsData[i] * toBoneFromModel[i];
-		toModel.q = toModel.q / magnitude(toModel.q);
-		animationMat4Data[i] = glm::translate(toModel.v) * ConvertToMatrix4(toModel.q) * glm::scale(glm::vec3(toModel.s));
+		DrawModelAndAnimation(simpleMesh, simpleObjMesh, simpleSkeletonLines, cameraP, simpleAnimationMat4BlockNames, simpleCenterMatrix);
+	}
+	else
+	{
+		DrawModelAndAnimation(centerMesh, centerObjMesh, skeletonLines, cameraP, animationMat4BlockNames, centerMatrix);
 	}
 
-	centerObjMesh->PrepareDrawing();
-
-	centerObjMesh->SendUniformFloatMatrix4("objToWorld", &centerMatrix[0][0]);
-	centerObjMesh->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
-	centerObjMesh->SendUniformBlockMatrix4("Block", skeletonCount, animationMat4BlockNames, animationMat4Data.data());
-	glm::vec3 red(1.f, 0.f, 0.f);
-	centerObjMesh->SendUniformFloat3("diffuseColor", &red.x);
-	centerObjMesh->SendUniformFloat3("camera", &cameraP.x);
-
-	centerObjMesh->Draw(centerMesh->getIndexBufferSize());
-
-
-	glDisable(GL_DEPTH_TEST);
-	skeletonLines->PrepareDrawing();
-
-
-	glm::vec3 lineColor;
-	lineColor.r = 1.f;
-	lineColor.g = 1.f;
-	lineColor.b = 1.f;
-	// skeletonLines->SendUniformBlockMatrix4("Block", skeletonCount, animationMat4BlockNames, animationMat4Data.data());
-	skeletonLines->SendUniformFloat3("lineColor", reinterpret_cast<float*>(&lineColor));
-	skeletonLines->SendUniformFloatMatrix4("objToWorld", &centerMatrix[0][0]);
-	skeletonLines->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
-	skeletonLines->Draw(centerMesh->GetBoneCountForDisplay());
-
-	glEnable(GL_DEPTH_TEST);
+	DrawControlPoints();
+	DrawPath();
 
 	////////////////////////////////////////////////////////////////////////////////////// Draw ends
-
-	DrawDebuggingObjects();
 
 	return 0;
 }
@@ -243,7 +238,8 @@ void AS1Scene::CleanUp()
 
 	textureManager.Clear();
 
-	DestroyAnimationMat4BlockNames();
+	DestroyAnimationMat4BlockNames(animationMat4BlockNames, animationMat4BlockNameSize);
+	DestroyAnimationMat4BlockNames(simpleAnimationMat4BlockNames, simpleAnimationMat4BlockNameSize);
 
 	delete sphereMesh;
 	delete normalMesh;
@@ -252,12 +248,19 @@ void AS1Scene::CleanUp()
 	delete sphereOrbit;
 	delete orbitMesh;
 
+	delete centerMesh;
+	delete simpleMesh;
+
 	delete floorObjMesh;
 	delete centerObjMesh;
+	delete simpleObjMesh;
 
 	delete myReader;
 
 	delete skeletonLines;
+	delete simpleSkeletonLines;
+
+	delete pathLine;
 }
 
 void AS1Scene::SetupNanoGUI(GLFWwindow* window)
@@ -293,6 +296,10 @@ void AS1Scene::InitGraphics()
 	centerObjMesh->Init(centerMesh->getVertexCount(), centerMesh->getVertexBuffer(), centerMesh->getVertexNormals(), centerMesh->getVertexUVs(),
 		centerMesh->GetBoneIDs(), centerMesh->GetBoneWeights(), centerMesh->getIndexBufferSize(), centerMesh->getIndexBuffer());
 
+	simpleObjMesh->SetShader(skinShader);
+	simpleObjMesh->Init(simpleMesh->getVertexCount(), simpleMesh->getVertexBuffer(), simpleMesh->getVertexNormals(), simpleMesh->getVertexUVs(),
+		simpleMesh->GetBoneIDs(), simpleMesh->GetBoneWeights(), simpleMesh->getIndexBufferSize(), simpleMesh->getIndexBuffer());
+
 	// normal inits
 	normalMesh->SetShader(normalDisplayProgramID);
 	normalMesh->Init(centerMesh->getVertexNormalCount(), centerMesh->getVertexNormalsForDisplay());
@@ -313,10 +320,277 @@ void AS1Scene::InitGraphics()
 	sphereOrbit->Init(orbitMesh->getVertexBufferSize(), orbitMesh->getVertexBuffer());
 }
 
+void AS1Scene::InitPath()
+{
+	InitControlPoints();
+
+	constexpr int lineSegmentCount = 80;
+	path.resize(lineSegmentCount);
+
+	const int halfCount = lineSegmentCount / 2;
+	for (int i = 0; i < halfCount; i++)
+	{
+		glm::vec3 interpolatedPoint = BezierCurve(i * (1.f / halfCount));
+		path[i * 2] = interpolatedPoint;
+		glm::vec3 interpolatedNextPoint = BezierCurve(((i+1) % (halfCount)) * (1.f / halfCount));
+		path[(i * 2) + 1] = interpolatedNextPoint;
+	}
+
+	pathLine->SetShader(normalDisplayProgramID);
+	pathLine->Init(lineSegmentCount, reinterpret_cast<GLfloat*>(path.data()));
+}
+
+void AS1Scene::InitControlPoints()
+{
+	constexpr int pointSize = 8;
+	controlPoints.resize(pointSize);
+	controlPoints[0] = glm::vec3(1.f, 0.f, 0.f);
+	controlPoints[1] = glm::vec3(0.5f, 0.f, 0.5f);
+	controlPoints[2] = glm::vec3(0.f, 0.f, 1.f);
+	controlPoints[3] = glm::vec3(-0.5f, 0.f, 0.5f);
+	controlPoints[4] = glm::vec3(-1.f, 0.f, 0.f);
+	controlPoints[5] = glm::vec3(-0.5f, 0.f, -0.5f);
+	controlPoints[6] = glm::vec3(0.f, 0.f, -1.f);
+	controlPoints[7] = glm::vec3(0.5f, 0.f, -0.5f);
+
+	interpolatedPointsForCurve.resize(pointSize);
+	for (int i = 0; i < pointSize; i++)
+	{
+		int previousIndex;
+		int nextIndex;
+		GetPreviousAndNextIndices(i, pointSize, previousIndex, nextIndex);
+
+		glm::vec3 offset = (controlPoints[nextIndex] - controlPoints[previousIndex]) / static_cast<float>(pointSize);
+		interpolatedPointsForCurve[i].first = controlPoints[i] - offset;
+		interpolatedPointsForCurve[i].second = controlPoints[i] + offset;
+	}
+
+
+}
+
+void AS1Scene::DrawPath()
+{
+	glm::mat4 pathToWorld = glm::scale(glm::vec3(0.05f, 0.05f, 0.05f)) * sphereMesh->calcAdjustBoundingBoxMatrix();
+	glm::vec3 red = glm::vec3(1.f, 0.f, 0.f);
+	pathLine->PrepareDrawing();
+	pathLine->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
+	pathLine->SendUniformFloatMatrix4("objToWorld", &pathToWorld[0][0]);
+	pathLine->SendUniformFloat3("lineColor", &red[0]);
+	pathLine->Draw(static_cast<int>(path.size()));
+}
+
+void AS1Scene::DrawControlPoints()
+{
+
+	glm::vec3 white = glm::vec3(1.f, 1.f, 1.f);
+	for (size_t i = 0; i < controlPoints.size(); i++)
+	{
+		spheres->PrepareDrawing();
+		glm::mat4 sphereMatrix = glm::translate(controlPoints[i]) * glm::scale(glm::vec3(0.1f, 0.1f, 0.1f)) * sphereMesh->calcAdjustBoundingBoxMatrix();
+
+		spheres->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
+		spheres->SendUniformFloatMatrix4("objToWorld", &sphereMatrix[0][0]);
+		spheres->SendUniformFloat3("diffuseColor", &white[0]);
+		spheres->Draw(sphereMesh->getIndexBufferSize());
+	}
+}
+
+glm::vec3 AS1Scene::BezierCurve(float u)
+{
+	if (u >= 1.f)
+	{
+		u = u - static_cast<int>(u);
+	}
+	const int controlPointSize = static_cast<int>(controlPoints.size());
+	float step = 1.f / controlPointSize;
+	int startControlPointIndex = (static_cast<int>(floor(u / step)) ) % controlPointSize;
+	int nextIndex = (startControlPointIndex + 1) % controlPointSize;
+
+	float u0 = step * startControlPointIndex;
+	float u1 = step * (startControlPointIndex + 1);
+	u = (u - u0) / (u1 - u0);
+	
+
+	glm::vec3 p0 = controlPoints[startControlPointIndex];
+	glm::vec3 p1 = interpolatedPointsForCurve[startControlPointIndex].second;
+	glm::vec3 p2 = interpolatedPointsForCurve[nextIndex].first;
+	glm::vec3 p3 = controlPoints[nextIndex];
+
+	return (-p0 + 3.f*p1 - 3.f*p2 + p3) * (u*u*u) + (3.f*p0 - 6.f*p1 + 3.f*p2) * (u*u) + (-3.f*p0 + 3.f*p1) * u + p0;
+}
+
+void AS1Scene::GetPreviousAndNextIndices(int i, int size, int& previous, int& next)
+{
+	previous = ((i - 1) < 0) ? (i - 1 + size) : (i - 1);
+	next = (i + 1) % size;
+}
+
+void AS1Scene::BuildTable()
+{
+	// Specify temporary classes to make it easy.
+	typedef std::pair<float, float> SegList;
+	
+	class myComparator
+	{
+	public:
+		int operator() (const SegList& s1, const SegList& s2)
+		{
+			return s1.first > s2.first;
+		}
+	};
+
+	SegList startSegList = SegList(0.f, 1.f);
+	std::priority_queue<SegList, std::vector<SegList>, myComparator> segLists;
+	segLists.push(startSegList);
+	
+	const float distanceThreshold = 0.1f;
+	const float parameterThreshold = 0.01f;
+
+	while(!segLists.empty())
+	{
+		const SegList current = segLists.top();
+		segLists.pop();
+		const float ua = current.first;
+		const float ub = current.second;
+
+		const float um = (ua + ub) / 2.f;
+		const glm::vec3 uaLoc = BezierCurve(ua);
+		const glm::vec3 ubLoc = BezierCurve(ub);
+		const glm::vec3 umLoc = BezierCurve(um);
+		const float A = glm::distance(uaLoc, umLoc);
+		const float B = glm::distance(umLoc, ubLoc);
+		const float C = glm::distance(uaLoc, ubLoc);
+		const float d = abs(A + B - C);
+
+		if (d > distanceThreshold || abs(ub - ua) > parameterThreshold)
+		{
+			segLists.push(SegList(ua, um));
+			segLists.push(SegList(um, ub));
+		}
+		else
+		{
+			arcLengthTable.insert(std::pair(um, A + arcLengthTable[ua]));
+			arcLengthTable.insert(std::pair(ub, B + arcLengthTable[um]));
+		}
+	}
+
+	// Code to normalize elements in arc Length table.
+	const float maxElement = arcLengthTable[1.f];
+	for (auto& t : arcLengthTable)
+	{
+		t.second = t.second / maxElement;
+		std::cout << t.first << ", " << t.second << std::endl;
+	}
+}
+
+float AS1Scene::InverseArcLength(float s)
+{
+	if (s <= 0.f)
+	{
+		return 0.f;
+	}
+	else if (s >= 1.f)
+	{
+		return 1.f;
+	}
+
+	float ua = 0.f;
+	float ub = 1.f;
+
+	float um = 0.f;
+	float sm = 0.f;
+	
+	// Get 2 * delta arc length
+	float tmp = (++arcLengthTable.begin())->second;
+	float tmp2 = arcLengthTable.begin()->second;
+	const float arcLengthEpsilon = tmp - tmp2;
+	do
+	{
+		um = (ua + ub) / 2.f;
+		sm = arcLengthTable[um];
+
+		if (abs(sm - s) <= arcLengthEpsilon)
+		{
+			break;
+		}
+
+		if (sm < s)
+		{
+			ua = um;
+		}
+		else
+		{
+			ub = um;
+		}
+
+	} while (true);
+
+	if (sm > s)
+	{
+		const float si = arcLengthTable[ua];
+		return ua + (um - ua) * (s - si) / (sm - si);
+	}
+	else
+	{
+		const float si1 = arcLengthTable[ub];
+		return um + (ub - um) * (s - sm) / (si1 - sm);
+	}
+}
+
+// @@ TODO: Test distance by time function
+float AS1Scene::DistanceByTime(float t)
+{
+	const float t1 = 1.f, t7 = 7.f, t8 = 8.f;
+
+
+	if (t > t8)
+	{
+		t -= floor(t / t8) * t8;
+	}
+
+	float result = 0.f;
+	if (t < t1)
+	{
+		result = EaseIn(t, t1);
+	}
+	else if (t > t7)
+	{
+		result = EaseOut(t, t7, t8, t1);
+	}
+	else
+	{
+		result = Linear(t, t1);
+	}
+
+	static const float max = EaseOut(t8, t7, t8, t1);
+	result /= max;
+
+	return result;
+}
+
+float AS1Scene::EaseIn(float t, float maxT)
+{
+	const float pi = glm::pi<float>();
+	return maxT * sin(pi / 2 * (t - maxT) / maxT) + (maxT);
+}
+
+float AS1Scene::Linear(float t, float t1)
+{
+	const float pi = glm::pi<float>();
+	return pi / 2.f * (t - t1) + t1;
+}
+
+float AS1Scene::EaseOut(float t, float minT, float maxT, float t1)
+{
+	const float pi = glm::pi<float>();
+	return (maxT - minT) * sin(pi / 2 * (t - minT) / (maxT - minT)) + ((minT - t1) * pi / 2) + (t1);
+}
+
 void AS1Scene::AddMembersToGUI()
 {
-	MyImGUI::SetNormalDisplayReferences(&vertexNormalFlag, &faceNormalFlag);
-	MyImGUI::SetAnimationReferences(&playAnimation, &timer, centerMesh->GetAnimationDuration());
+	MyImGUI::SetNormalDisplayReferences(&showSkeleton);
+	MyImGUI::SetAnimationReferences(&playAnimation, &timer, centerMesh->GetAnimationDuration(), &showSimpleModel, simpleMesh->GetAnimationDuration());
+	MyImGUI::SetControlPointsReferences(&controlPoints);
 }
 
 void AS1Scene::DrawVertexNormals()
@@ -474,12 +748,12 @@ void AS1Scene::UpdateCamera()
 
 void AS1Scene::DrawDebuggingObjects()
 {
-	if (vertexNormalFlag)
+	// if (vertexNormalFlag)
 	{
 		DrawVertexNormals();
 	}
 
-	if (faceNormalFlag)
+	// if (faceNormalFlag)
 	{
 		DrawFaceNormals();
 	}
@@ -489,36 +763,88 @@ void AS1Scene::PrepareSkeletons()
 {
 	skeletonLines->SetShader(normalUniformProgramID);
 	skeletonLines->Init(centerMesh->GetBoneCountForDisplay(), centerMesh->GetBonesForDisplay());
+
+	simpleSkeletonLines->SetShader(normalUniformProgramID);
+	simpleSkeletonLines->Init(simpleMesh->GetBoneCountForDisplay(), simpleMesh->GetBonesForDisplay());
 }
 
-void AS1Scene::CreateAnimationMat4BlockNames(const size_t size)
+void AS1Scene::CreateAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSizeRef, const size_t size)
 {
-	animationMat4BlockNameSize = static_cast<GLsizei>(size);
-	animationMat4BlockNames = new GLchar * [animationMat4BlockNameSize];
+	nameSizeRef = static_cast<GLsizei>(size);
+	names = new GLchar * [nameSizeRef];
 	constexpr int MAX_STRING_SIZE = 40;
 
-	for (int i = 0; i < animationMat4BlockNameSize; i++)
+	for (int i = 0; i < nameSizeRef; i++)
 	{
-		animationMat4BlockNames[i] = new GLchar[MAX_STRING_SIZE];
+		names[i] = new GLchar[MAX_STRING_SIZE];
 	}
 
-	for (int i = 0; i < animationMat4BlockNameSize; i++)
+	for (int i = 0; i < nameSizeRef; i++)
 	{
 		std::string result;
 		result = std::string(std::string("Block.item[") + std::to_string(i) + std::string("].toModelFromBone"));
-		strcpy(animationMat4BlockNames[i], result.c_str());
+		strcpy(names[i], result.c_str());
 	}
 }
 
-void AS1Scene::DestroyAnimationMat4BlockNames()
+void AS1Scene::DestroyAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSizeRef)
 {
-	if (animationMat4BlockNameSize < 0)
+	if (nameSizeRef < 0)
 	{
 		return;
 	}
-	for (size_t i = 0; i < animationMat4BlockNameSize; i++)
+	for (size_t i = 0; i < nameSizeRef; i++)
 	{
-		delete[] animationMat4BlockNames[i];
+		delete[] names[i];
 	}
-	delete[] animationMat4BlockNames;
+	delete[] names;
+}
+
+void AS1Scene::DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMesh* skeleton, Point& p, GLchar**& blockNames, glm::mat4& matrix)
+{
+
+
+	std::vector<Vqs> toBoneFromModel;
+	mesh->GetToBoneFromModel(toBoneFromModel);
+	std::vector<Vqs> transformsData;
+	mesh->GetAnimationTransform(timer, transformsData, false);
+	const int skeletonCount = static_cast<int>(transformsData.size());
+	std::vector<glm::mat4> animationMat4Data(skeletonCount);
+	for (int i = 0; i < skeletonCount; i++)
+	{
+		Vqs toModel = transformsData[i] * toBoneFromModel[i];
+		toModel.q = toModel.q / magnitude(toModel.q);
+		animationMat4Data[i] = glm::translate(toModel.v) * ConvertToMatrix4(toModel.q) * glm::scale(glm::vec3(toModel.s));
+	}
+
+	objMesh->PrepareDrawing();
+
+	objMesh->SendUniformFloatMatrix4("objToWorld", &matrix[0][0]);
+	objMesh->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
+	objMesh->SendUniformBlockMatrix4("Block", skeletonCount, blockNames, animationMat4Data.data());
+	glm::vec3 red(1.f, 0.f, 0.f);
+	objMesh->SendUniformFloat3("diffuseColor", &red.x);
+	objMesh->SendUniformFloat3("camera", &p.x);
+
+	objMesh->Draw(mesh->getIndexBufferSize());
+
+
+	glDisable(GL_DEPTH_TEST);
+	skeleton->PrepareDrawing();
+
+
+	glm::vec3 lineColor;
+	lineColor.r = 1.f;
+	lineColor.g = 1.f;
+	lineColor.b = 1.f;
+	// skeletonLines->SendUniformBlockMatrix4("Block", skeletonCount, animationMat4BlockNames, animationMat4Data.data());
+	skeleton->SendUniformFloat3("lineColor", reinterpret_cast<float*>(&lineColor));
+	skeleton->SendUniformFloatMatrix4("objToWorld", &matrix[0][0]);
+	skeleton->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
+	if (showSkeleton)
+	{
+		skeleton->Draw(mesh->GetBoneCountForDisplay());
+	}
+
+	glEnable(GL_DEPTH_TEST);
 }

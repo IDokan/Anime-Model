@@ -56,7 +56,33 @@ public:
 	void UpdateGUI();
 
 private:
+	
 	void InitGraphics();
+
+	// @@ Path functions
+	void InitPath();
+	void InitControlPoints();
+	void DrawPath();
+	void DrawControlPoints();
+	glm::vec3 BezierCurve(float u);
+	void GetPreviousAndNextIndices(int i, int size, int& previous, int& next);
+
+	std::vector<glm::vec3> path;
+	LineMesh* pathLine;
+	// @@ End of path
+
+	/// @@ Arc table functions
+	void BuildTable();
+	// Give s to obtain u
+	float InverseArcLength(float s);
+	std::map<float, float> arcLengthTable;
+
+	/// @@ Distance - time functions
+	float DistanceByTime(float t);
+	float EaseIn(float t, float maxT);
+	float Linear(float t, float t1);
+	float EaseOut(float t, float minT, float maxT, float t1);
+	/// </summary>
 
 	void AddMembersToGUI();
 
@@ -72,15 +98,18 @@ private:
 
 	void PrepareSkeletons();
 
-	void CreateAnimationMat4BlockNames(const size_t size);
-	void DestroyAnimationMat4BlockNames();
+	void CreateAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSizeRef, const size_t size);
+	void DestroyAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSizeRef);
 
+	void DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMesh* skeleton, Point& p, GLchar**& blockNames, glm::mat4& matrix);
 private:
 	Mesh* sphereMesh;
 	Mesh* orbitMesh;
 	Mesh* floorMesh;
 	Mesh* centerMesh;
+	Mesh* simpleMesh;
 	BoneObjectMesh* centerObjMesh;
+	BoneObjectMesh* simpleObjMesh;
 
 	// Shaders
 	GLuint programID;
@@ -96,6 +125,7 @@ private:
 	LineMesh* sphereOrbit;
 	// Skeletons
 	LineMesh* skeletonLines;
+	LineMesh* simpleSkeletonLines;
 
 	// Hybrid rendering
 	// AssimpShader* mainModelShader;
@@ -106,12 +136,13 @@ private:
 	// glm::mat4 modelMatrix;
 	glm::mat4 floorMatrix;
 	glm::mat4 centerMatrix;
+	glm::mat4 simpleCenterMatrix;
 
 	// GUI members
 	GLFWwindow* displayWindow;
 	GLFWwindow* guiWindow;
 
-	bool vertexNormalFlag;
+	bool showSkeleton;
 	bool faceNormalFlag;
 
 	Camera camera;
@@ -149,9 +180,15 @@ private:
 	GLchar** animationMat4BlockNames;
 	GLsizei animationMat4BlockNameSize;
 
+	GLchar** simpleAnimationMat4BlockNames;
+	GLsizei simpleAnimationMat4BlockNameSize;
+
 	float timer;
 	bool playAnimation;
-	
+	bool showSimpleModel;
+
+	std::vector<glm::vec3> controlPoints;
+	std::vector<std::pair<glm::vec3, glm::vec3>> interpolatedPointsForCurve;
 };
 
 #endif // AS1_SCENE_H
