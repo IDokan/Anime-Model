@@ -555,7 +555,7 @@ float AS1Scene::InverseArcLength(float s)
 // @@ TODO: Test distance by time function
 float AS1Scene::DistanceByTime(float t)
 {
-	const float t1 = 1.f, t7 = 4.f, t8 = 8.f;
+	const float t1 = 1.f, t7 = 7.f, t8 = 8.f;
 
 
 	if (t > t8)
