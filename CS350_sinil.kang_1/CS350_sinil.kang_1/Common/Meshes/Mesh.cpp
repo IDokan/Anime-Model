@@ -511,7 +511,7 @@ void Mesh::GetToBoneFromModel(std::vector<Vqs>& toBoneFromModel)
     }
 }
 
-void Mesh::GetAnimationTransform(float& time, std::vector<Vqs>& transforms, bool isSkeleton)
+void Mesh::GetAnimationTransform(float time, std::vector<Vqs>& transforms, bool isSkeleton)
 {
     Animation animation = animations[0];
     if (time > animation.duration)

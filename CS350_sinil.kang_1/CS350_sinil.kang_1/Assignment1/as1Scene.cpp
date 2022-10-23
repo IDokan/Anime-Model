@@ -101,10 +101,6 @@ int AS1Scene::Init()
 
 
 
-	InitPath();
-	BuildTable();
-	// Assume whole time is 8 seconds, 
-		// 1 seconds to finish a track.
 	
 
 	centerMesh->LoadBinFile("../Common/Meshes/models/Tad.bin");
@@ -120,6 +116,11 @@ int AS1Scene::Init()
 	InitGraphics();
 
 	SetupCamera();
+
+	InitPath();
+	BuildTable();
+	// Assume whole time is 8 seconds,
+		// 1 seconds to finish a track.
 
 	return Scene::Init();
 }
@@ -153,14 +154,29 @@ int AS1Scene::preRender(float dt)
 
 
 	glm::vec3 scaleVector = glm::vec3(1.f);
-	const float displacementToPi = glm::pi<float>() / 180.f;
-	glm::vec3 position = BezierCurve(InverseArcLength(DistanceByTime(timer)));
+	static const float displacementToPi = glm::pi<float>() / 180.f;
+	const float u = InverseArcLength(DistanceByTime(timer));
+	glm::vec3 position = BezierCurve(u);
+
+	const float deltaU = 0.01f;
+
+	glm::vec3 COI = (BezierCurve(u + deltaU) + BezierCurve(u + (2.f * deltaU)) + BezierCurve(u + (3.f * deltaU))) / 3.f;
+	static const glm::vec3 globalY(0.f, 1.f, 0.f);
+	glm::vec3 roll = glm::normalize(COI - position);
+	glm::vec3 pitch = glm::cross(globalY, roll);
+	glm::vec3 yaw = glm::cross(roll, pitch);
+	glm::vec4 last = glm::vec4(0.f, 0.f, 0.f, 1.f);
+	glm::mat4 pathControl = glm::mat4(glm::vec4(pitch, 0.f), glm::vec4(yaw, 0.f), glm::vec4(roll, 0.f), last);
+
+
 	centerMatrix =
 		glm::translate(position) *
+		 pathControl *
 		glm::rotate(180.f * displacementToPi, glm::vec3(0.f, 1.f, 0.f)) *
 		glm::scale(scaleVector);
 	simpleCenterMatrix =
 		glm::translate(position) *
+		 pathControl *
 		glm::rotate(180.f * displacementToPi, glm::vec3(0.f, 1.f, 0.f)) *
 		glm::scale(scaleVector);
 	floorMatrix = glm::translate(glm::vec3(0.f, -5.f, 0.f)) * glm::rotate(glm::half_pi<float>(), glm::vec3(1.f, 0.f, 0.f)) * glm::scale(glm::vec3(10.f, 10.f, 1.f)) * floorMesh->calcAdjustBoundingBoxMatrix();
@@ -350,7 +366,7 @@ void AS1Scene::InitControlPoints()
 
 	for (int i = 0; i < pointSize; i++)
 	{
-		controlPoints[i] *= 1.f;
+		controlPoints[i] *= 8.f;
 	}
 
 	interpolatedPointsForCurve.resize(pointSize);
@@ -479,7 +495,6 @@ void AS1Scene::BuildTable()
 	for (auto& t : arcLengthTable)
 	{
 		t.second = t.second / maxElement;
-		std::cout << t.first << ", " << t.second << std::endl;
 	}
 }
 
@@ -503,7 +518,7 @@ float AS1Scene::InverseArcLength(float s)
 	// Get 2 * delta arc length
 	float tmp = (++arcLengthTable.begin())->second;
 	float tmp2 = arcLengthTable.begin()->second;
-	const float arcLengthEpsilon = 5.f * (tmp - tmp2);
+	const float arcLengthEpsilon = 2.f * (tmp - tmp2);
 	do
 	{
 		um = (ua + ub) / 2.f;
@@ -540,7 +555,7 @@ float AS1Scene::InverseArcLength(float s)
 // @@ TODO: Test distance by time function
 float AS1Scene::DistanceByTime(float t)
 {
-	const float t1 = 1.f, t7 = 7.f, t8 = 8.f;
+	const float t1 = 1.f, t7 = 4.f, t8 = 8.f;
 
 
 	if (t > t8)
