@@ -28,13 +28,22 @@ struct AssimpVertex
 	glm::vec3 Tangent;
 	glm::vec3 Bitangent;
 
-		//bone indexes which will influence this vertex
-		int m_BoneIDs[MAX_BONE_INFLUENCE];
-		//weights from each bone
-		float m_Weights[MAX_BONE_INFLUENCE];
+	//bone indexes which will influence this vertex
+	int m_BoneIDs[MAX_BONE_INFLUENCE];
+	//weights from each bone
+	float m_Weights[MAX_BONE_INFLUENCE];
+
+	int boneCount = 0;
+	void AddBone(int boneID, float boneWeights)
+	{
+		m_BoneIDs[boneCount] = boneID;
+		m_Weights[boneCount] = boneWeights;
+
+		++boneCount;
+	}
 };
 
-struct AssimpTexture 
+struct AssimpTexture
 {
 	unsigned int id;
 	std::string type;

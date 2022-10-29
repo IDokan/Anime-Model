@@ -14,6 +14,7 @@ End Header --------------------------------------------------------*/
 
 #include <string>
 #include <vector>
+#include <map>
 
 class AssimpMesh;
 
@@ -24,6 +25,7 @@ struct aiScene;
 struct aiMesh;
 struct aiMaterial;
 enum aiTextureType;
+struct aiBone;
 
 class AssimpShader;
 class FileObject;
@@ -56,16 +58,18 @@ private:
 	std::vector<AssimpTexture> textures_loaded;
 	std::vector<AssimpMesh> meshes;
 	std::string directory;
-	bool gammaCorrection;
 
 	void ProcessNode(aiNode* node, const aiScene* scene);
 	AssimpMesh ProcessMesh(aiMesh* mesh, const aiScene* scene);
 	std::vector<AssimpTexture> LoadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
 	unsigned int TextureFromFile(const char* path, const std::string& directory, bool gamma = false);
+	int GetBoneID(const aiBone* bone);
 
 
 	glm::vec3 boundingBox[2];
 
 	std::vector<glm::vec3> vertexNormalDisplay, faceNormalDisplay;
 	float normalLength;
+
+	std::map<std::string, unsigned int> boneNameToIndexMap;
 };

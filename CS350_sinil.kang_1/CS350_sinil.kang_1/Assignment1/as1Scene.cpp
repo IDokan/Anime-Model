@@ -42,13 +42,12 @@ AS1Scene::AS1Scene(int width, int height)
 	:Scene(width, height),
 	angleOfRotate(0), showSkeleton(true),
 	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f),
-	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(true), showSimpleModel(true)
+	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(true)
 {
 	sphereMesh = new Mesh();
 	orbitMesh = new Mesh();
 	floorMesh = new Mesh();
 	centerMesh = new Mesh(true);
-	simpleMesh = new Mesh(true);
 
 	centerMatrix = glm::mat4(1.f);
 	// modelMatrix = glm::mat4(1.f);
@@ -59,7 +58,6 @@ AS1Scene::AS1Scene(int width, int height)
 	sphereOrbit = new LineMesh();
 	floorObjMesh = new ObjectMesh();
 	centerObjMesh = new BoneObjectMesh();
-	simpleObjMesh = new BoneObjectMesh();
 
 	sphericalViewPoint = Point(1.f, 0.f, 3.14f);
 	cartesianViewVector = Vector(0.f, 0.f, -1.f);
@@ -80,7 +78,6 @@ AS1Scene::AS1Scene(int width, int height)
 	myReader = new MyObjReader();
 
 	skeletonLines = new LineMesh();
-	simpleSkeletonLines = new LineMesh();
 
 	pathLine = new LineMesh();
 }
@@ -101,13 +98,10 @@ int AS1Scene::Init()
 
 
 
-	
+
 
 	centerMesh->LoadBinFile("../Common/Meshes/models/Tad.bin");
 	CreateAnimationMat4BlockNames(animationMat4BlockNames, animationMat4BlockNameSize, centerMesh->GetSkeleton().size());
-	simpleMesh->LoadBinFile("../Common/Meshes/models/Bomber.bin");
-	CreateAnimationMat4BlockNames(simpleAnimationMat4BlockNames, simpleAnimationMat4BlockNameSize, simpleMesh->GetSkeleton().size());
-
 
 	AddMembersToGUI();
 
@@ -144,6 +138,12 @@ int AS1Scene::preRender(float dt)
 {
 	if (playAnimation)
 	{
+
+		if (timer >= centerMesh->GetAnimationDuration())
+		{
+			timer = 0.f;
+		}
+
 		timer += dt;
 	}
 
@@ -171,12 +171,7 @@ int AS1Scene::preRender(float dt)
 
 	centerMatrix =
 		glm::translate(position) *
-		 pathControl *
-		glm::rotate(180.f * displacementToPi, glm::vec3(0.f, 1.f, 0.f)) *
-		glm::scale(scaleVector);
-	simpleCenterMatrix =
-		glm::translate(position) *
-		 pathControl *
+		pathControl *
 		glm::rotate(180.f * displacementToPi, glm::vec3(0.f, 1.f, 0.f)) *
 		glm::scale(scaleVector);
 	floorMatrix = glm::translate(glm::vec3(0.f, -5.f, 0.f)) * glm::rotate(glm::half_pi<float>(), glm::vec3(1.f, 0.f, 0.f)) * glm::scale(glm::vec3(10.f, 10.f, 1.f)) * floorMesh->calcAdjustBoundingBoxMatrix();
@@ -213,14 +208,7 @@ int AS1Scene::Render(float dt)
 
 	floorObjMesh->Draw(floorMesh->getIndexBufferSize());
 
-	if (showSimpleModel)
-	{
-		DrawModelAndAnimation(simpleMesh, simpleObjMesh, simpleSkeletonLines, cameraP, simpleAnimationMat4BlockNames, simpleCenterMatrix);
-	}
-	else
-	{
-		DrawModelAndAnimation(centerMesh, centerObjMesh, skeletonLines, cameraP, animationMat4BlockNames, centerMatrix);
-	}
+	DrawModelAndAnimation(centerMesh, centerObjMesh, skeletonLines, cameraP, animationMat4BlockNames, centerMatrix);
 
 	DrawControlPoints();
 	DrawPath();
@@ -250,7 +238,6 @@ void AS1Scene::CleanUp()
 	textureManager.Clear();
 
 	DestroyAnimationMat4BlockNames(animationMat4BlockNames, animationMat4BlockNameSize);
-	DestroyAnimationMat4BlockNames(simpleAnimationMat4BlockNames, simpleAnimationMat4BlockNameSize);
 
 	delete sphereMesh;
 	delete normalMesh;
@@ -260,16 +247,13 @@ void AS1Scene::CleanUp()
 	delete orbitMesh;
 
 	delete centerMesh;
-	delete simpleMesh;
 
 	delete floorObjMesh;
 	delete centerObjMesh;
-	delete simpleObjMesh;
 
 	delete myReader;
 
 	delete skeletonLines;
-	delete simpleSkeletonLines;
 
 	delete pathLine;
 }
@@ -286,12 +270,12 @@ void AS1Scene::UpdateGUI()
 
 void AS1Scene::InitGraphics()
 {
-	textureManager.AddTexture(
-		"../Common/ppms/metal_roof_diff_512x512.ppm",
-		"diffuseTexture", Texture::TextureType::PPM);
-	textureManager.AddTexture(
-		"../Common/ppms/metal_roof_spec_512x512.ppm",
-		"specularTexture", Texture::TextureType::PPM);
+	//textureManager.AddTexture(
+	//	"../Common/ppms/metal_roof_diff_512x512.ppm",
+	//	"diffuseTexture", Texture::TextureType::PPM);
+	//textureManager.AddTexture(
+	//	"../Common/ppms/metal_roof_spec_512x512.ppm",
+	//	"specularTexture", Texture::TextureType::PPM);
 
 
 	std::vector<glm::vec2> uvs;
@@ -306,10 +290,6 @@ void AS1Scene::InitGraphics()
 	centerObjMesh->SetShader(skinShader);
 	centerObjMesh->Init(centerMesh->getVertexCount(), centerMesh->getVertexBuffer(), centerMesh->getVertexNormals(), centerMesh->getVertexUVs(),
 		centerMesh->GetBoneIDs(), centerMesh->GetBoneWeights(), centerMesh->getIndexBufferSize(), centerMesh->getIndexBuffer());
-
-	simpleObjMesh->SetShader(skinShader);
-	simpleObjMesh->Init(simpleMesh->getVertexCount(), simpleMesh->getVertexBuffer(), simpleMesh->getVertexNormals(), simpleMesh->getVertexUVs(),
-		simpleMesh->GetBoneIDs(), simpleMesh->GetBoneWeights(), simpleMesh->getIndexBufferSize(), simpleMesh->getIndexBuffer());
 
 	// normal inits
 	normalMesh->SetShader(normalDisplayProgramID);
@@ -343,7 +323,7 @@ void AS1Scene::InitPath()
 	{
 		glm::vec3 interpolatedPoint = BezierCurve(i * (1.f / halfCount));
 		path[i * 2] = interpolatedPoint;
-		glm::vec3 interpolatedNextPoint = BezierCurve(((i+1) % (halfCount)) * (1.f / halfCount));
+		glm::vec3 interpolatedNextPoint = BezierCurve(((i + 1) % (halfCount)) * (1.f / halfCount));
 		path[(i * 2) + 1] = interpolatedNextPoint;
 	}
 
@@ -419,20 +399,20 @@ glm::vec3 AS1Scene::BezierCurve(float u)
 	}
 	const int controlPointSize = static_cast<int>(controlPoints.size());
 	float step = 1.f / controlPointSize;
-	int startControlPointIndex = (static_cast<int>(floor(u / step)) ) % controlPointSize;
+	int startControlPointIndex = (static_cast<int>(floor(u / step))) % controlPointSize;
 	int nextIndex = (startControlPointIndex + 1) % controlPointSize;
 
 	float u0 = step * startControlPointIndex;
 	float u1 = step * (startControlPointIndex + 1);
 	u = (u - u0) / (u1 - u0);
-	
+
 
 	glm::vec3 p0 = controlPoints[startControlPointIndex];
 	glm::vec3 p1 = interpolatedPointsForCurve[startControlPointIndex].second;
 	glm::vec3 p2 = interpolatedPointsForCurve[nextIndex].first;
 	glm::vec3 p3 = controlPoints[nextIndex];
 
-	return (-p0 + 3.f*p1 - 3.f*p2 + p3) * (u*u*u) + (3.f*p0 - 6.f*p1 + 3.f*p2) * (u*u) + (-3.f*p0 + 3.f*p1) * u + p0;
+	return (-p0 + 3.f * p1 - 3.f * p2 + p3) * (u * u * u) + (3.f * p0 - 6.f * p1 + 3.f * p2) * (u * u) + (-3.f * p0 + 3.f * p1) * u + p0;
 }
 
 void AS1Scene::GetPreviousAndNextIndices(int i, int size, int& previous, int& next)
@@ -445,7 +425,7 @@ void AS1Scene::BuildTable()
 {
 	// Specify temporary classes to make it easy.
 	typedef std::pair<float, float> SegList;
-	
+
 	class myComparator
 	{
 	public:
@@ -458,11 +438,11 @@ void AS1Scene::BuildTable()
 	SegList startSegList = SegList(0.f, 1.f);
 	std::priority_queue<SegList, std::vector<SegList>, myComparator> segLists;
 	segLists.push(startSegList);
-	
+
 	const float distanceThreshold = 0.1f;
 	const float parameterThreshold = 0.01f;
 
-	while(!segLists.empty())
+	while (!segLists.empty())
 	{
 		const SegList current = segLists.top();
 		segLists.pop();
@@ -514,7 +494,7 @@ float AS1Scene::InverseArcLength(float s)
 
 	float um = 0.f;
 	float sm = 0.f;
-	
+
 	// Get 2 * delta arc length
 	float tmp = (++arcLengthTable.begin())->second;
 	float tmp2 = arcLengthTable.begin()->second;
@@ -555,7 +535,7 @@ float AS1Scene::InverseArcLength(float s)
 // @@ TODO: Test distance by time function
 float AS1Scene::DistanceByTime(float t)
 {
-	const float t1 = 1.f, t7 = 7.f, t8 = 8.f;
+	const static float t1 = centerMesh->GetAnimationDuration() / 8.f, t7 = centerMesh->GetAnimationDuration() * 7.f / 8.f, t8 = centerMesh->GetAnimationDuration();
 
 
 	if (t > t8)
@@ -604,8 +584,7 @@ float AS1Scene::EaseOut(float t, float minT, float maxT, float t1)
 void AS1Scene::AddMembersToGUI()
 {
 	MyImGUI::SetNormalDisplayReferences(&showSkeleton);
-	MyImGUI::SetAnimationReferences(&playAnimation, &timer, centerMesh->GetAnimationDuration(), &showSimpleModel, simpleMesh->GetAnimationDuration());
-	MyImGUI::SetControlPointsReferences(&controlPoints);
+	MyImGUI::SetAnimationReferences(&playAnimation, &timer, centerMesh->GetAnimationDuration());
 }
 
 void AS1Scene::DrawVertexNormals()
@@ -778,9 +757,6 @@ void AS1Scene::PrepareSkeletons()
 {
 	skeletonLines->SetShader(normalUniformProgramID);
 	skeletonLines->Init(centerMesh->GetBoneCountForDisplay(), centerMesh->GetBonesForDisplay());
-
-	simpleSkeletonLines->SetShader(normalUniformProgramID);
-	simpleSkeletonLines->Init(simpleMesh->GetBoneCountForDisplay(), simpleMesh->GetBonesForDisplay());
 }
 
 void AS1Scene::CreateAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSizeRef, const size_t size)

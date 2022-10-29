@@ -301,6 +301,20 @@ AssimpMesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 		vertices.push_back(vertex);
 	}
 
+	if (mesh->HasBones())
+	{
+		for (unsigned int i = 0; i < mesh->mNumBones; i++)
+		{
+			aiBone* bone = mesh->mBones[i];
+			for (unsigned int i = 0; i < bone->mNumWeights; i++)
+			{
+				const aiVertexWeight& vw = bone->mWeights[i];
+				AssimpVertex& vertex = vertices[vw.mVertexId];
+				vertex.AddBone(GetBoneID(bone), vw.mWeight);
+			}
+		}
+	}
+
 	glm::vec3 modelScale = GetModelScale();
 	normalLength = glm::length(modelScale) / 100.f;
 	const int normalSize = static_cast<const int>(vertexNormalDisplay.size());
@@ -453,4 +467,22 @@ unsigned int Model::TextureFromFile(const char* path, const std::string& directo
 	}
 
 	return textureID;
+}
+
+int Model::GetBoneID(const aiBone* bone)
+{
+	int boneIndex = 0;
+	std::string boneName(bone->mName.C_Str());
+
+	if (boneNameToIndexMap.find(boneName) == boneNameToIndexMap.end())
+	{
+		boneIndex = static_cast<int>(boneNameToIndexMap.size());
+		boneNameToIndexMap[boneName] = boneIndex;
+	}
+	else
+	{
+		boneIndex = boneNameToIndexMap[boneName];
+	}
+
+	return boneIndex;
 }

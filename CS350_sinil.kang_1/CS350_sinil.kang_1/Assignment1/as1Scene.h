@@ -107,9 +107,7 @@ private:
 	Mesh* orbitMesh;
 	Mesh* floorMesh;
 	Mesh* centerMesh;
-	Mesh* simpleMesh;
 	BoneObjectMesh* centerObjMesh;
-	BoneObjectMesh* simpleObjMesh;
 
 	// Shaders
 	GLuint programID;
@@ -125,7 +123,6 @@ private:
 	LineMesh* sphereOrbit;
 	// Skeletons
 	LineMesh* skeletonLines;
-	LineMesh* simpleSkeletonLines;
 
 	// Hybrid rendering
 	// AssimpShader* mainModelShader;
@@ -136,7 +133,6 @@ private:
 	// glm::mat4 modelMatrix;
 	glm::mat4 floorMatrix;
 	glm::mat4 centerMatrix;
-	glm::mat4 simpleCenterMatrix;
 
 	// GUI members
 	GLFWwindow* displayWindow;
@@ -180,12 +176,8 @@ private:
 	GLchar** animationMat4BlockNames;
 	GLsizei animationMat4BlockNameSize;
 
-	GLchar** simpleAnimationMat4BlockNames;
-	GLsizei simpleAnimationMat4BlockNameSize;
-
 	float timer;
 	bool playAnimation;
-	bool showSimpleModel;
 
 	std::vector<glm::vec3> controlPoints;
 	std::vector<std::pair<glm::vec3, glm::vec3>> interpolatedPointsForCurve;
