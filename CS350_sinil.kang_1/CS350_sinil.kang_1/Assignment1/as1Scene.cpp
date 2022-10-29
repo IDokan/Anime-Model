@@ -65,7 +65,7 @@ AS1Scene::AS1Scene(int width, int height)
 	cartesianUpVector = Vector(0.f, 1.f, 0.f);
 
 
-	eyePoint = Point(0.f, 0.f, 5.f);
+	eyePoint = Point(0.f, 5.f,15.f);
 	targetPoint = Point(0.f, 0.f, 0.f);
 	fov = static_cast<float>(M_PI_2);
 	width = _windowWidth;
@@ -100,7 +100,7 @@ int AS1Scene::Init()
 
 
 
-	centerMesh->LoadBinFile("../Common/Meshes/models/Tad.bin");
+	centerMesh->LoadBinFile("../Common/Meshes/models/Joe.bin");
 	CreateAnimationMat4BlockNames(animationMat4BlockNames, animationMat4BlockNameSize, centerMesh->GetSkeleton().size());
 
 	AddMembersToGUI();
@@ -139,7 +139,7 @@ int AS1Scene::preRender(float dt)
 	if (playAnimation)
 	{
 
-		if (timer >= centerMesh->GetAnimationDuration())
+		if (timer >= 8.f)
 		{
 			timer = 0.f;
 		}
@@ -168,11 +168,11 @@ int AS1Scene::preRender(float dt)
 	glm::vec4 last = glm::vec4(0.f, 0.f, 0.f, 1.f);
 	glm::mat4 pathControl = glm::mat4(glm::vec4(pitch, 0.f), glm::vec4(yaw, 0.f), glm::vec4(roll, 0.f), last);
 
-
 	centerMatrix =
 		glm::translate(position) *
+		glm::translate(glm::vec3(0.f, 2.f, 0.f)) * 
 		pathControl *
-		glm::rotate(180.f * displacementToPi, glm::vec3(0.f, 1.f, 0.f)) *
+		glm::rotate(270.f * displacementToPi, glm::vec3(1.f, 0.f, 0.f)) *
 		glm::scale(scaleVector);
 	floorMatrix = glm::translate(glm::vec3(0.f, -5.f, 0.f)) * glm::rotate(glm::half_pi<float>(), glm::vec3(1.f, 0.f, 0.f)) * glm::scale(glm::vec3(10.f, 10.f, 1.f)) * floorMesh->calcAdjustBoundingBoxMatrix();
 
@@ -208,7 +208,7 @@ int AS1Scene::Render(float dt)
 
 	floorObjMesh->Draw(floorMesh->getIndexBufferSize());
 
-	DrawModelAndAnimation(centerMesh, centerObjMesh, skeletonLines, cameraP, animationMat4BlockNames, centerMatrix);
+	DrawModelAndAnimation(centerMesh, centerObjMesh, skeletonLines, cameraP, animationMat4BlockNames, centerMatrix, dt);
 
 	DrawControlPoints();
 	DrawPath();
@@ -347,6 +347,7 @@ void AS1Scene::InitControlPoints()
 	for (int i = 0; i < pointSize; i++)
 	{
 		controlPoints[i] *= 8.f;
+		controlPoints[i].y -= 4.9f;
 	}
 
 	interpolatedPointsForCurve.resize(pointSize);
@@ -535,7 +536,8 @@ float AS1Scene::InverseArcLength(float s)
 // @@ TODO: Test distance by time function
 float AS1Scene::DistanceByTime(float t)
 {
-	const static float t1 = centerMesh->GetAnimationDuration() / 8.f, t7 = centerMesh->GetAnimationDuration() * 7.f / 8.f, t8 = centerMesh->GetAnimationDuration();
+	//const static float t1 = centerMesh->GetAnimationDuration() / 8.f, t7 = centerMesh->GetAnimationDuration() * 7.f / 8.f, t8 = centerMesh->GetAnimationDuration();
+	const static float t1 = 2.f, t7 = 6.f, t8 = 8.f;
 
 
 	if (t > t8)
@@ -563,10 +565,43 @@ float AS1Scene::DistanceByTime(float t)
 	return result;
 }
 
+float AS1Scene::VelocityByTime(float t)
+{
+	const static float t1 = 2.f, t7 = 6.f, t8 = 8.f;
+
+
+	if (t > t8)
+	{
+		t -= floor(t / t8) * t8;
+	}
+
+	float result = 0.f;
+	if (t < t1)
+	{
+		result = DerivativeEaseIn(t, t1);
+	}
+	else if (t > t7)
+	{
+		result = DerivativeEaseOut(t, t7, t8);
+	}
+	else
+	{
+		result = DerivativeLinear();
+	}
+
+	return result;
+}
+
 float AS1Scene::EaseIn(float t, float maxT)
 {
 	const float pi = glm::pi<float>();
 	return maxT * sin(pi / 2 * (t - maxT) / maxT) + (maxT);
+}
+
+float AS1Scene::DerivativeEaseIn(float t, float maxT)
+{
+	const float pi = glm::pi<float>();
+	return pi * cos(pi*(t - maxT)/(2*maxT)) / 2.f;
 }
 
 float AS1Scene::Linear(float t, float t1)
@@ -575,10 +610,21 @@ float AS1Scene::Linear(float t, float t1)
 	return pi / 2.f * (t - t1) + t1;
 }
 
+float AS1Scene::DerivativeLinear()
+{
+	return glm::pi<float>() / 2.f;
+}
+
 float AS1Scene::EaseOut(float t, float minT, float maxT, float t1)
 {
 	const float pi = glm::pi<float>();
 	return (maxT - minT) * sin(pi / 2 * (t - minT) / (maxT - minT)) + ((minT - t1) * pi / 2) + (t1);
+}
+
+float AS1Scene::DerivativeEaseOut(float t, float minT, float maxT)
+{
+	const float pi = glm::pi<float>();
+	return pi * cos(pi * (t - minT) / (2 * (maxT - minT))) / 2.f;
 }
 
 void AS1Scene::AddMembersToGUI()
@@ -791,14 +837,14 @@ void AS1Scene::DestroyAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSize
 	delete[] names;
 }
 
-void AS1Scene::DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMesh* skeleton, Point& p, GLchar**& blockNames, glm::mat4& matrix)
+void AS1Scene::DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMesh* skeleton, Point& p, GLchar**& blockNames, glm::mat4& matrix, float dt)
 {
 
 
 	std::vector<Vqs> toBoneFromModel;
 	mesh->GetToBoneFromModel(toBoneFromModel);
 	std::vector<Vqs> transformsData;
-	mesh->GetAnimationTransform(timer, transformsData, false);
+	mesh->GetAnimationTransform(dt, transformsData, VelocityByTime(timer));
 	const int skeletonCount = static_cast<int>(transformsData.size());
 	std::vector<glm::mat4> animationMat4Data(skeletonCount);
 	for (int i = 0; i < skeletonCount; i++)

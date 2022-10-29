@@ -79,9 +79,13 @@ private:
 
 	/// @@ Distance - time functions
 	float DistanceByTime(float t);
+	float VelocityByTime(float t);
 	float EaseIn(float t, float maxT);
+	float DerivativeEaseIn(float t, float maxT);
 	float Linear(float t, float t1);
+	float DerivativeLinear();
 	float EaseOut(float t, float minT, float maxT, float t1);
+	float DerivativeEaseOut(float t, float minT, float maxT);
 	/// </summary>
 
 	void AddMembersToGUI();
@@ -101,7 +105,7 @@ private:
 	void CreateAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSizeRef, const size_t size);
 	void DestroyAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSizeRef);
 
-	void DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMesh* skeleton, Point& p, GLchar**& blockNames, glm::mat4& matrix);
+	void DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMesh* skeleton, Point& p, GLchar**& blockNames, glm::mat4& matrix, float dt);
 private:
 	Mesh* sphereMesh;
 	Mesh* orbitMesh;

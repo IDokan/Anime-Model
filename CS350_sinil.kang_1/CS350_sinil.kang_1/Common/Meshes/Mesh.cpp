@@ -51,7 +51,7 @@ void Mesh::initData()
 }
 
 Mesh::Mesh(bool binParserMode)
-    : binParserMode(binParserMode)
+    : binParserMode(binParserMode), animTimer(0.f), animCyclePerSecond(1.f)
 {
 }
 
@@ -511,12 +511,14 @@ void Mesh::GetToBoneFromModel(std::vector<Vqs>& toBoneFromModel)
     }
 }
 
-void Mesh::GetAnimationTransform(float time, std::vector<Vqs>& transforms, bool isSkeleton)
+void Mesh::GetAnimationTransform(float dt, std::vector<Vqs>& transforms, float velocity)
 {
     Animation animation = animations[0];
-    if (time > animation.duration)
+    constexpr float P = 2.f;
+    animTimer += dt * velocity / P;
+    if (animTimer > animation.duration)
     {
-        time -= animation.duration * static_cast<int>(time / animation.duration);
+        animTimer -= animation.duration * static_cast<int>(animTimer / animation.duration);
     }
 
     const size_t trackSize = animation.tracks.size();
@@ -529,7 +531,7 @@ void Mesh::GetAnimationTransform(float time, std::vector<Vqs>& transforms, bool 
             int transformIndex;
             int nextTransformIndex;
             // If time is correct or that is the last data
-            if (time < animation.tracks[i].keyFrames[j].time || j == keyFrameSize - 1)
+            if (animTimer < animation.tracks[i].keyFrames[j].time || j == keyFrameSize - 1)
             {
                 // If there is only one keyFrame
                 if (keyFrameSize == 1)
@@ -553,7 +555,7 @@ void Mesh::GetAnimationTransform(float time, std::vector<Vqs>& transforms, bool 
                 nextTransformIndex = static_cast<int>(j);
 
 
-                float t = (time - animation.tracks[i].keyFrames[transformIndex].time) / (animation.tracks[i].keyFrames[nextTransformIndex].time - animation.tracks[i].keyFrames[transformIndex].time);
+                float t = (animTimer - animation.tracks[i].keyFrames[transformIndex].time) / (animation.tracks[i].keyFrames[nextTransformIndex].time - animation.tracks[i].keyFrames[transformIndex].time);
                 Vqs result;
                 result.v = (1 - t) * animation.tracks[i].keyFrames[transformIndex].toModelFromBone.v + (t * animation.tracks[i].keyFrames[nextTransformIndex].toModelFromBone.v);
 

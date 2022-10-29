@@ -92,7 +92,7 @@ public:
     glm::mat4 calcAdjustBoundingBoxMatrix();
 
     void GetToBoneFromModel(std::vector<Vqs>& toBoneFromModel);
-    void GetAnimationTransform(float time, std::vector<Vqs>& transforms, bool isSkeleton);
+    void GetAnimationTransform(float dt, std::vector<Vqs>& transforms, float velocity);
     float GetAnimationDuration();
 /// Bin parser functions
 
@@ -127,6 +127,9 @@ private:
     GLfloat                 normalLength = 0.f;
 
     bool binParserMode;
+
+    float animTimer;
+    float animCyclePerSecond;
 };
 
 
