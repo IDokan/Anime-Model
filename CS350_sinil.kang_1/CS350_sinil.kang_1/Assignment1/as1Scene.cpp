@@ -42,7 +42,7 @@ AS1Scene::AS1Scene(int width, int height)
 	:Scene(width, height),
 	angleOfRotate(0), showSkeleton(false),
 	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f),
-	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(true), velocity(0.f)
+	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(true), velocity(0.f), startPosition(), ballPosition()
 {
 	sphereMesh = new Mesh();
 	orbitMesh = new Mesh();
@@ -80,6 +80,9 @@ AS1Scene::AS1Scene(int width, int height)
 	skeletonLines = new LineMesh();
 
 	pathLine = new LineMesh();
+
+	startPosition = glm::vec3(8.f, -4.9f, -2.f);
+	ballPosition = glm::vec3(-8.f, -4.9f, 0.f);
 }
 
 AS1Scene::~AS1Scene()
@@ -136,12 +139,10 @@ int AS1Scene::preRender(float dt)
 	if (playAnimation)
 	{
 
-		if (timer >= 8.f)
+		if (timer < 8.f)
 		{
-			timer = 0.f;
+			timer += dt;
 		}
-
-		timer += dt;
 	}
 
 	glClearColor(clearColor.x, clearColor.y, clearColor.z, 1.f);
@@ -157,9 +158,8 @@ int AS1Scene::preRender(float dt)
 
 	const float deltaU = 0.01f;
 
-	glm::vec3 COI = (BezierCurve(u + deltaU) + BezierCurve(u + (2.f * deltaU)) + BezierCurve(u + (3.f * deltaU))) / 3.f;
 	static const glm::vec3 globalY(0.f, 1.f, 0.f);
-	glm::vec3 roll = glm::normalize(COI - position);
+	glm::vec3 roll = glm::normalize(ballPosition - startPosition);
 	glm::vec3 pitch = glm::cross(globalY, roll);
 	glm::vec3 yaw = glm::cross(roll, pitch);
 	glm::vec4 last = glm::vec4(0.f, 0.f, 0.f, 1.f);
@@ -207,7 +207,15 @@ int AS1Scene::Render(float dt)
 
 	DrawModelAndAnimation(centerMesh, centerObjMesh, skeletonLines, cameraP, animationMat4BlockNames, centerMatrix, dt);
 
-	DrawControlPoints();
+
+	spheres->PrepareDrawing();
+	glm::mat4 sphereMatrix = glm::translate(ballPosition) * glm::scale(glm::vec3(0.1f, 0.1f, 0.1f)) * sphereMesh->calcAdjustBoundingBoxMatrix();
+	glm::vec3 white(1.f, 1.f, 1.f);
+	spheres->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
+	spheres->SendUniformFloatMatrix4("objToWorld", &sphereMatrix[0][0]);
+	spheres->SendUniformFloat3("diffuseColor", &white[0]);
+	spheres->Draw(sphereMesh->getIndexBufferSize());
+
 	DrawPath();
 
 	////////////////////////////////////////////////////////////////////////////////////// Draw ends
@@ -320,7 +328,7 @@ void AS1Scene::InitPath()
 	{
 		glm::vec3 interpolatedPoint = BezierCurve(i * (1.f / halfCount));
 		path[i * 2] = interpolatedPoint;
-		glm::vec3 interpolatedNextPoint = BezierCurve(((i + 1) % (halfCount)) * (1.f / halfCount));
+		glm::vec3 interpolatedNextPoint = BezierCurve(((i + 1)) * (1.f / halfCount));
 		path[(i * 2) + 1] = interpolatedNextPoint;
 	}
 
@@ -332,19 +340,15 @@ void AS1Scene::InitControlPoints()
 {
 	constexpr int pointSize = 8;
 	controlPoints.resize(pointSize);
-	controlPoints[0] = glm::vec3(1.f, 0.f, 0.f);
-	controlPoints[1] = glm::vec3(0.5f, 0.f, 0.5f);
-	controlPoints[2] = glm::vec3(0.f, 0.f, 1.f);
-	controlPoints[3] = glm::vec3(-0.5f, 0.f, 0.5f);
-	controlPoints[4] = glm::vec3(-1.f, 0.f, 0.f);
-	controlPoints[5] = glm::vec3(-0.5f, 0.f, -0.5f);
-	controlPoints[6] = glm::vec3(0.f, 0.f, -1.f);
-	controlPoints[7] = glm::vec3(0.5f, 0.f, -0.5f);
-
+	//controlPoints[0] = startPosition;
+	//for (int i = 0; i < pointSize - 2; i++)
+	//{
+	//	controlPoints[i + 1] = static_cast<float>(i) / (pointSize - 3) * ballPosition + (static_cast<float>(pointSize - 3 - i) / (pointSize - 3) * startPosition);
+	//}
+	//controlPoints[pointSize - 1] = ballPosition;
 	for (int i = 0; i < pointSize; i++)
 	{
-		controlPoints[i] *= 8.f;
-		controlPoints[i].y -= 4.9f;
+		controlPoints[i] = static_cast<float>(i) / (pointSize - 1) * ballPosition + (static_cast<float>(pointSize - 1 - i) / (pointSize - 1) * startPosition);
 	}
 
 	interpolatedPointsForCurve.resize(pointSize);
@@ -391,14 +395,22 @@ void AS1Scene::DrawControlPoints()
 
 glm::vec3 AS1Scene::BezierCurve(float u)
 {
-	if (u >= 1.f)
+	if (u < 0.f)
 	{
-		u = u - static_cast<int>(u);
+		u = 0.f;
+	}
+	else if (u > 1.f)
+	{
+		u = 1.f;
 	}
 	const int controlPointSize = static_cast<int>(controlPoints.size());
-	float step = 1.f / controlPointSize;
-	int startControlPointIndex = (static_cast<int>(floor(u / step))) % controlPointSize;
-	int nextIndex = (startControlPointIndex + 1) % controlPointSize;
+	float step = 1.f / (controlPointSize - 1);
+	int startControlPointIndex = (static_cast<int>(floor(u / step)));
+	if (startControlPointIndex >= controlPointSize)
+	{
+		startControlPointIndex = controlPointSize - 1;
+	}
+	int nextIndex = ((startControlPointIndex + 1) <= controlPointSize) ? startControlPointIndex + 1 : controlPointSize - 1;
 
 	float u0 = step * startControlPointIndex;
 	float u1 = step * (startControlPointIndex + 1);
@@ -410,13 +422,18 @@ glm::vec3 AS1Scene::BezierCurve(float u)
 	glm::vec3 p2 = interpolatedPointsForCurve[nextIndex].first;
 	glm::vec3 p3 = controlPoints[nextIndex];
 
+	if (p0 == p3)
+	{
+		return p0;
+	}
+
 	return (-p0 + 3.f * p1 - 3.f * p2 + p3) * (u * u * u) + (3.f * p0 - 6.f * p1 + 3.f * p2) * (u * u) + (-3.f * p0 + 3.f * p1) * u + p0;
 }
 
 void AS1Scene::GetPreviousAndNextIndices(int i, int size, int& previous, int& next)
 {
-	previous = ((i - 1) < 0) ? (i - 1 + size) : (i - 1);
-	next = (i + 1) % size;
+	previous = ((i - 1) < 0) ? 0 : (i - 1);
+	next = ((i + 1) >= size) ? size - 1 : i+1;
 }
 
 void AS1Scene::BuildTable()
@@ -501,6 +518,11 @@ float AS1Scene::InverseArcLength(float s)
 	{
 		um = (ua + ub) / 2.f;
 		sm = arcLengthTable[um];
+		if (sm == 0.f && um > 0.f)
+		{
+			arcLengthTable.erase(um);
+			break;
+		}
 
 		if (abs(sm - s) <= arcLengthEpsilon)
 		{
@@ -539,7 +561,7 @@ float AS1Scene::DistanceByTime(float t)
 
 	if (t > t8)
 	{
-		t -= floor(t / t8) * t8;
+		return t8;
 	}
 
 	float result = 0.f;
@@ -569,7 +591,7 @@ float AS1Scene::VelocityByTime(float t)
 
 	if (t > t8)
 	{
-		t -= floor(t / t8) * t8;
+		return 0.f;
 	}
 
 	float result = 0.f;

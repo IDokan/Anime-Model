@@ -186,6 +186,9 @@ private:
 
 	std::vector<glm::vec3> controlPoints;
 	std::vector<std::pair<glm::vec3, glm::vec3>> interpolatedPointsForCurve;
+
+	glm::vec3 startPosition;
+	glm::vec3 ballPosition;
 };
 
 #endif // AS1_SCENE_H
