@@ -216,7 +216,7 @@ int Mesh::calcVertexNormals(GLboolean bFlipNormals)
     vertexNormals.resize( numVertices, glm::vec3(0.0f) );
     vertexNormalDisplay.resize( static_cast<size_t>(numVertices) * 2U, glm::vec3(0.0f) );
 
-    std::vector< std::set< glm::vec3, compareVec > >  vNormalSet;
+    std::vector< std::vector< glm::vec3> >  vNormalSet;
     vNormalSet.resize( numVertices );
 
     // For every face
@@ -255,9 +255,9 @@ int Mesh::calcVertexNormals(GLboolean bFlipNormals)
         faceNormals[(index/3) - 1] = (N);
 
         // For vertex a
-        vNormalSet.at( a ).insert( N );
-        vNormalSet.at( b ).insert( N );
-        vNormalSet.at( c ).insert( N );
+        vNormalSet.at( a ).push_back( N );
+        vNormalSet.at( b ).push_back( N );
+        vNormalSet.at( c ).push_back( N );
     }
 
     // Now sum up the values per vertex

@@ -12,7 +12,7 @@ Creation date: 10/9/2022
 End Header --------------------------------------------------------*/
 
 A. Algorithms I used
-	I used Bezier curve to form a path.
+	I used a cubic polynomial interpolation to form a path.
 	I used Adaptive approach to construct an arc length table.
 	I used binary search for inverse arc length function.
 	I used Sine interpolation for distance-time function.

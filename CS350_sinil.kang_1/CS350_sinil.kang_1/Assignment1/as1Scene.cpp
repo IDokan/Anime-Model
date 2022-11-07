@@ -88,13 +88,10 @@ AS1Scene::~AS1Scene()
 
 int AS1Scene::Init()
 {
-#ifndef _DEBUG
 	MeshGenerator::GenerateSphereMesh(*sphereMesh, 0.05f, 16);
 	MeshGenerator::GenerateOrbitMesh(*orbitMesh, 1.f, 32);
 
 	myReader->ReadObjFile("../Common/Meshes/models/quad.obj", floorMesh, true);
-	// model = new Model("../Common/Meshes/models/Bomber.bin");
-#endif
 
 
 
