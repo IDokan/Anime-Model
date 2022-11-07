@@ -40,9 +40,9 @@ End Header --------------------------------------------------------*/
 
 AS1Scene::AS1Scene(int width, int height)
 	:Scene(width, height),
-	angleOfRotate(0), showSkeleton(true),
+	angleOfRotate(0), showSkeleton(false),
 	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f),
-	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(true)
+	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(true), velocity(0.f)
 {
 	sphereMesh = new Mesh();
 	orbitMesh = new Mesh();
@@ -631,6 +631,7 @@ void AS1Scene::AddMembersToGUI()
 {
 	MyImGUI::SetNormalDisplayReferences(&showSkeleton);
 	MyImGUI::SetAnimationReferences(&playAnimation, &timer, centerMesh->GetAnimationDuration());
+	MyImGUI::SetDisplayReferences(&velocity);
 }
 
 void AS1Scene::DrawVertexNormals()
@@ -839,12 +840,12 @@ void AS1Scene::DestroyAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSize
 
 void AS1Scene::DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMesh* skeleton, Point& p, GLchar**& blockNames, glm::mat4& matrix, float dt)
 {
-
+	velocity = VelocityByTime(timer);
 
 	std::vector<Vqs> toBoneFromModel;
 	mesh->GetToBoneFromModel(toBoneFromModel);
 	std::vector<Vqs> transformsData;
-	mesh->GetAnimationTransform(dt, transformsData, VelocityByTime(timer));
+	mesh->GetAnimationTransform(dt, transformsData, velocity);
 	const int skeletonCount = static_cast<int>(transformsData.size());
 	std::vector<glm::mat4> animationMat4Data(skeletonCount);
 	for (int i = 0; i < skeletonCount; i++)

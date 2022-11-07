@@ -12,8 +12,11 @@ Creation date: 10/9/2022
 End Header --------------------------------------------------------*/
 
 A. Algorithms I used
-	I used Slerp to interpolate animation key frames.
-		It followed the shortest path(when from 10 degree to 350 degree, it goes 10->0(360)->350).
+	I used Bezier curve to form a path.
+	I used Adaptive approach to construct an arc length table.
+	I used binary search for inverse arc length function.
+	I used Sine interpolation for distance-time function.
+
 B. How to compile and run the executable
 	Open CS300 Project.sln file.
 	If build mode is Debug, change build mode to Release at the top left. It is located at left of Local Windows Debugger which has green triangle icon. (Press Debug and choose Release mode)
@@ -21,6 +24,11 @@ B. How to compile and run the executable
 
 C. Code comments
 	Assignment1/as1Scene.cpp&.h - contains scene codes
+		InitPath function has initializing a path by given control points
+		BuildTable function constructs arc length table.
+		InverseArcLength function contains binary search for finding u given s.
+		DistanceByTime function has a Sine interpolation code.
+		
 	Common/Meshes/binFileSources/binFileStructs.cpp&.h - contains VQS, Quaternion codes.
 	Common/Meshes/Mesh.cpp&.h - has how to load model file. 
 		Especially LoadBinFile(const std::string& path), ParseBinFile(FileObject* pFile), ReadMesh(FileObject* pFile), ReadSkeleton(FileObject* pFile), ReadAnimation(FileObject* pFile), ReadVqs(FileObject* pFile, Vqs& vqs)
@@ -35,7 +43,7 @@ Press right mouse button to look around.
 Press E to move up.
 Press Q to move down.
 
-Basic Information section shows FPS.
+Basic Information section shows FPS, and velocity.
 Skeleton section allows you to control toggle displaying skeleton
 Animation section help you stop animation and display specific time of the animation.
 Model section give you control to change complex model to simple model

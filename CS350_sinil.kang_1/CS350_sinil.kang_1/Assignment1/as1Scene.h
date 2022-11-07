@@ -182,6 +182,7 @@ private:
 
 	float timer;
 	bool playAnimation;
+	float velocity;
 
 	std::vector<glm::vec3> controlPoints;
 	std::vector<std::pair<glm::vec3, glm::vec3>> interpolatedPointsForCurve;
