@@ -92,8 +92,10 @@ public:
     glm::mat4 calcAdjustBoundingBoxMatrix();
 
     void GetToBoneFromModel(std::vector<Vqs>& toBoneFromModel);
-    void GetAnimationTransform(float dt, std::vector<Vqs>& transforms, float velocity);
+    void GetAnimationTransform(std::vector<Vqs>& transforms);
+    Vqs GetAnimationTransform(unsigned int index);
     float GetAnimationDuration();
+    void UpdateAnimationTimer(float dt, float velocity);
 /// Bin parser functions
 
     bool LoadBinFile(const std::string& path);

@@ -144,6 +144,7 @@ int AS1Scene::preRender(float dt)
 			timer += dt;
 		}
 	}
+	centerMesh->UpdateAnimationTimer(dt, velocity);
 
 	glClearColor(clearColor.x, clearColor.y, clearColor.z, 1.f);
 
@@ -207,13 +208,23 @@ int AS1Scene::Render(float dt)
 
 	DrawModelAndAnimation(centerMesh, centerObjMesh, skeletonLines, cameraP, animationMat4BlockNames, centerMatrix, dt);
 
-
 	spheres->PrepareDrawing();
 	glm::mat4 sphereMatrix = glm::translate(ballPosition) * glm::scale(glm::vec3(0.1f, 0.1f, 0.1f)) * sphereMesh->calcAdjustBoundingBoxMatrix();
 	glm::vec3 white(1.f, 1.f, 1.f);
 	spheres->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
 	spheres->SendUniformFloatMatrix4("objToWorld", &sphereMatrix[0][0]);
 	spheres->SendUniformFloat3("diffuseColor", &white[0]);
+	spheres->Draw(sphereMesh->getIndexBufferSize());
+
+
+	const unsigned int EEIndex = 19;
+	Vqs toEE = centerMesh->GetAnimationTransform(EEIndex);
+	glm::mat4 objToEEToWorld = centerMatrix * glm::translate(toEE.v) * ConvertToMatrix4(toEE.q) * glm::scale(glm::vec3(toEE.s));
+
+	glm::vec3 EEcolor(0.f, 1.f, 0.f);
+	spheres->PrepareDrawing();
+	spheres->SendUniformFloatMatrix4("objToWorld", &objToEEToWorld[0][0]);
+	spheres->SendUniformFloat3("diffuseColor", &EEcolor[0]);
 	spheres->Draw(sphereMesh->getIndexBufferSize());
 
 	DrawPath();
@@ -864,7 +875,7 @@ void AS1Scene::DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMe
 	std::vector<Vqs> toBoneFromModel;
 	mesh->GetToBoneFromModel(toBoneFromModel);
 	std::vector<Vqs> transformsData;
-	mesh->GetAnimationTransform(dt, transformsData, velocity);
+	mesh->GetAnimationTransform(transformsData);
 	const int skeletonCount = static_cast<int>(transformsData.size());
 	std::vector<glm::mat4> animationMat4Data(skeletonCount);
 	for (int i = 0; i < skeletonCount; i++)

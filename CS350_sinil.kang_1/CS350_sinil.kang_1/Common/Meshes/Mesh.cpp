@@ -511,15 +511,9 @@ void Mesh::GetToBoneFromModel(std::vector<Vqs>& toBoneFromModel)
     }
 }
 
-void Mesh::GetAnimationTransform(float dt, std::vector<Vqs>& transforms, float velocity)
+void Mesh::GetAnimationTransform(std::vector<Vqs>& transforms)
 {
     Animation animation = animations[0];
-    constexpr float P = 2.f;
-    animTimer += dt * velocity / P;
-    if (animTimer > animation.duration)
-    {
-        animTimer -= animation.duration * static_cast<int>(animTimer / animation.duration);
-    }
 
     const size_t trackSize = animation.tracks.size();
     transforms.resize(trackSize);
@@ -578,9 +572,74 @@ void Mesh::GetAnimationTransform(float dt, std::vector<Vqs>& transforms, float v
     }
 }
 
+// Return a transformation to the End Effector.
+Vqs Mesh::GetAnimationTransform(unsigned int index)
+{
+    Animation animation = animations[0];
+    Vqs finalResult{};
+    
+    while (index != -1)
+    {
+        const size_t keyFrameSize = animation.tracks[index].keyFrames.size();
+        for (size_t j = 0; j < keyFrameSize; j++)
+        {
+            int transformIndex;
+            int nextTransformIndex;
+            // If time is correct or that is the last data
+            if (animTimer < animation.tracks[index].keyFrames[j].time || j == keyFrameSize - 1)
+            {
+                // If there is only one keyFrame
+                if (keyFrameSize == 1)
+                {
+                    Vqs result = animation.tracks[index].keyFrames[j].toModelFromBone;
+                    result.q = result.q / (magnitude(result.q));
+
+                    finalResult = result * finalResult;
+
+                    // Update current index to do get transformations of parent.
+                    index = skeleton[index].parentID;
+                    break;
+                }
+
+                // Guarantee that data is in the area
+                transformIndex = static_cast<int>((j == 0) ? 0 : (j - 1));
+                nextTransformIndex = static_cast<int>(j);
+
+
+                float t = (animTimer - animation.tracks[index].keyFrames[transformIndex].time) / (animation.tracks[index].keyFrames[nextTransformIndex].time - animation.tracks[index].keyFrames[transformIndex].time);
+                Vqs result;
+                result.v = (1 - t) * animation.tracks[index].keyFrames[transformIndex].toModelFromBone.v + (t * animation.tracks[index].keyFrames[nextTransformIndex].toModelFromBone.v);
+
+                slerp(animation.tracks[index].keyFrames[transformIndex].toModelFromBone.q, animation.tracks[index].keyFrames[nextTransformIndex].toModelFromBone.q, t, result.q);
+                result.q = (result.q) / magnitude(result.q);
+
+                finalResult = result * finalResult;
+                // Update current index to do get transformations of parent.
+                index = skeleton[index].parentID;
+
+                break;
+            }
+        }
+    }
+
+    return finalResult;
+}
+
 float Mesh::GetAnimationDuration()
 {
     return animations[0].duration;
+}
+
+void Mesh::UpdateAnimationTimer(float dt, float velocity)
+{
+    Animation animation = animations[0];
+
+    constexpr float P = 2.f;
+    animTimer += dt * velocity / P;
+    if (animTimer > animation.duration)
+    {
+        animTimer -= animation.duration * static_cast<int>(animTimer / animation.duration);
+    }
 }
 
 bool Mesh::LoadBinFile(const std::string& path)
@@ -761,7 +820,7 @@ void Mesh::ReadSkeleton(FileObject* pFile)
         // @@@@ TODO: figure out appropriate unit bone
         constexpr float BONE_SCALE = 0.5f;
         initialBones[i * 2] = bone.toModelFromBone * glm::vec3(0.f, 0.f, 0.f);
-        initialBones[i * 2 + 1] = bone.toModelFromBone *  glm::vec3(BONE_SCALE, 0.f, 0.f);
+        initialBones[i * 2 + 1] = bone.toModelFromBone *  glm::vec3(0.f, BONE_SCALE, 0.f);
     }
 }
 
