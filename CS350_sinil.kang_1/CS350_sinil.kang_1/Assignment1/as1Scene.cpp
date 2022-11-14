@@ -82,7 +82,7 @@ AS1Scene::AS1Scene(int width, int height)
 	pathLine = new LineMesh();
 
 	startPosition = glm::vec3(8.f, -4.9f, -2.f);
-	ballPosition = glm::vec3(-8.f, -4.9f, 0.f);
+	ballPosition = glm::vec3(-1.f, 0.f, 0.5f);
 }
 
 AS1Scene::~AS1Scene()
@@ -101,6 +101,11 @@ int AS1Scene::Init()
 
 
 	centerMesh->LoadBinFile("../Common/Meshes/models/Joe.bin");
+
+	const unsigned int EEIndex = 19;
+	centerMesh->InitManipulator(EEIndex);
+	centerMesh->CalculateInverseKinematics(ballPosition);
+
 	CreateAnimationMat4BlockNames(animationMat4BlockNames, animationMat4BlockNameSize, centerMesh->GetSkeleton().size());
 
 	AddMembersToGUI();
@@ -151,7 +156,7 @@ int AS1Scene::preRender(float dt)
 	glEnable(GL_DEPTH_TEST);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
+	// @@ Path control
 	glm::vec3 scaleVector = glm::vec3(1.f);
 	static const float displacementToPi = glm::pi<float>() / 180.f;
 	const float u = InverseArcLength(DistanceByTime(timer));
@@ -166,10 +171,19 @@ int AS1Scene::preRender(float dt)
 	glm::vec4 last = glm::vec4(0.f, 0.f, 0.f, 1.f);
 	glm::mat4 pathControl = glm::mat4(glm::vec4(pitch, 0.f), glm::vec4(yaw, 0.f), glm::vec4(roll, 0.f), last);
 
+
+	//centerMatrix =
+	//	glm::translate(position) *
+	//	glm::translate(glm::vec3(0.f, 2.f, 0.f)) *
+	//	pathControl *
+	//	glm::rotate(270.f * displacementToPi, glm::vec3(1.f, 0.f, 0.f)) *
+	//	glm::scale(scaleVector);
+	
+	// @@ Path control
+
+
 	centerMatrix =
-		glm::translate(position) *
-		glm::translate(glm::vec3(0.f, 2.f, 0.f)) * 
-		pathControl *
+		glm::translate(glm::vec3(0.f, -3.f, 0.f)) * 
 		glm::rotate(270.f * displacementToPi, glm::vec3(1.f, 0.f, 0.f)) *
 		glm::scale(scaleVector);
 	floorMatrix = glm::translate(glm::vec3(0.f, -5.f, 0.f)) * glm::rotate(glm::half_pi<float>(), glm::vec3(1.f, 0.f, 0.f)) * glm::scale(glm::vec3(10.f, 10.f, 1.f)) * floorMesh->calcAdjustBoundingBoxMatrix();
@@ -219,7 +233,8 @@ int AS1Scene::Render(float dt)
 
 	const unsigned int EEIndex = 19;
 	Vqs toEE = centerMesh->GetAnimationTransform(EEIndex);
-	glm::mat4 objToEEToWorld = centerMatrix * glm::translate(toEE.v) * ConvertToMatrix4(toEE.q) * glm::scale(glm::vec3(toEE.s));
+	//glm::mat4 objToEEToWorld = centerMatrix * glm::translate(toEE.v) * ConvertToMatrix4(toEE.q) * glm::scale(glm::vec3(toEE.s));
+	glm::mat4 objToEEToWorld = centerMatrix * glm::translate(centerMesh->GetTest());
 
 	glm::vec3 EEcolor(0.f, 1.f, 0.f);
 	spheres->PrepareDrawing();
@@ -870,20 +885,31 @@ void AS1Scene::DestroyAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSize
 
 void AS1Scene::DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMesh* skeleton, Point& p, GLchar**& blockNames, glm::mat4& matrix, float dt)
 {
+	//glm::vec3 targetPositionInModelSpace = inverse(centerMatrix) * centerMatrix * glm::translate(glm::vec3(0.f, -2.f, 1.f));
+
 	velocity = VelocityByTime(timer);
 
 	std::vector<Vqs> toBoneFromModel;
 	mesh->GetToBoneFromModel(toBoneFromModel);
 	std::vector<Vqs> transformsData;
 	mesh->GetAnimationTransform(transformsData);
+	std::vector<glm::mat4> inverseKinematic = mesh->GetInverseKinematicFrame();
+	if (playAnimation == true)
+	{
+		inverseKinematic = mesh->GetInitialFrame();
+	}
+	
 	const int skeletonCount = static_cast<int>(transformsData.size());
 	std::vector<glm::mat4> animationMat4Data(skeletonCount);
 	for (int i = 0; i < skeletonCount; i++)
 	{
-		Vqs toModel = transformsData[i] * toBoneFromModel[i];
-		toModel.q = toModel.q / magnitude(toModel.q);
-		animationMat4Data[i] = glm::translate(toModel.v) * ConvertToMatrix4(toModel.q) * glm::scale(glm::vec3(toModel.s));
+		//Vqs toModel = transformsData[i] * toBoneFromModel[i];
+		//// toModel.q = toModel.q / magnitude(toModel.q);
+		//animationMat4Data[i] = glm::translate(toModel.v) * ConvertToMatrix4(toModel.q) * glm::scale(glm::vec3(toModel.s));
+
+		animationMat4Data[i] = inverseKinematic[i] * glm::translate(toBoneFromModel[i].v) * ConvertToMatrix4(toBoneFromModel[i].q) * glm::scale(glm::vec3(toBoneFromModel[i].s));
 	}
+
 
 	objMesh->PrepareDrawing();
 

@@ -105,6 +105,13 @@ public:
     void ReadAnimation(FileObject* pFile);
     void ReadVqs(FileObject* pFile, Vqs& vqs);
 
+    // Inverse Kinematics
+    void CalculateInverseKinematics(glm::vec3 targetPositionInModelSpace);
+    void InitManipulator(size_t endEffector);
+    std::vector<glm::mat4> GetInverseKinematicFrame();
+    std::vector<glm::mat4> GetInitialFrame();
+    glm::vec3 GetTest();
+
 private:
     // Models
     std::vector<glm::vec3>    vertexBuffer;
@@ -123,6 +130,12 @@ private:
     // Animations
     std::vector<Animation> animations;
     
+    // Inverse kinematics
+    std::vector<glm::mat4> inverseKinematicMatrix;
+    std::vector<size_t> manipulator;
+    std::vector<glm::mat4> initFrame;
+    std::vector<glm::mat4> frame;
+    glm::vec3 test;
 
     // boundingBox[0] -> minimum point, boundingBox[1] -> maximum point
     glm::vec3               boundingBox[2];
