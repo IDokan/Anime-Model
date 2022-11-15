@@ -82,7 +82,7 @@ AS1Scene::AS1Scene(int width, int height)
 	pathLine = new LineMesh();
 
 	startPosition = glm::vec3(8.f, -4.9f, -2.f);
-	ballPosition = glm::vec3(-1.f, 0.f, 0.5f);
+	ballPosition = glm::vec3(-2.f, -2.5f, 0.5f);
 }
 
 AS1Scene::~AS1Scene()
@@ -102,9 +102,15 @@ int AS1Scene::Init()
 
 	centerMesh->LoadBinFile("../Common/Meshes/models/Joe.bin");
 
-	const unsigned int EEIndex = 19;
+	const unsigned int EEIndex = 13;
 	centerMesh->InitManipulator(EEIndex);
-	centerMesh->CalculateInverseKinematics(ballPosition);
+
+	float toPI= glm::pi<float>() / 180.f;
+	centerMatrix =
+		glm::translate(glm::vec3(0.f, -3.f, 0.f)) *
+		glm::rotate(270.f * toPI, glm::vec3(1.f, 0.f, 0.f));
+	const auto result = glm::inverse(centerMatrix) * glm::vec4(ballPosition.x, ballPosition.y, ballPosition.z, 1.f);
+	centerMesh->CalculateInverseKinematics(glm::vec3(result.x, result.y, result.z));
 
 	CreateAnimationMat4BlockNames(animationMat4BlockNames, animationMat4BlockNameSize, centerMesh->GetSkeleton().size());
 
@@ -231,16 +237,15 @@ int AS1Scene::Render(float dt)
 	spheres->Draw(sphereMesh->getIndexBufferSize());
 
 
-	const unsigned int EEIndex = 19;
-	Vqs toEE = centerMesh->GetAnimationTransform(EEIndex);
-	//glm::mat4 objToEEToWorld = centerMatrix * glm::translate(toEE.v) * ConvertToMatrix4(toEE.q) * glm::scale(glm::vec3(toEE.s));
-	glm::mat4 objToEEToWorld = centerMatrix * glm::translate(centerMesh->GetTest());
+	//const unsigned int EEIndex = 14;
+	//Vqs toEE = centerMesh->GetAnimationTransform(EEIndex);
+	//glm::mat4 objToEEToWorld = glm::translate(ballPosition);
 
-	glm::vec3 EEcolor(0.f, 1.f, 0.f);
-	spheres->PrepareDrawing();
-	spheres->SendUniformFloatMatrix4("objToWorld", &objToEEToWorld[0][0]);
-	spheres->SendUniformFloat3("diffuseColor", &EEcolor[0]);
-	spheres->Draw(sphereMesh->getIndexBufferSize());
+	//glm::vec3 EEcolor(0.f, 1.f, 0.f);
+	//spheres->PrepareDrawing();
+	//spheres->SendUniformFloatMatrix4("objToWorld", &objToEEToWorld[0][0]);
+	//spheres->SendUniformFloat3("diffuseColor", &EEcolor[0]);
+	//spheres->Draw(sphereMesh->getIndexBufferSize());
 
 	DrawPath();
 

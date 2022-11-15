@@ -511,7 +511,7 @@ void Mesh::GetToBoneFromModel(std::vector<Vqs>& toBoneFromModel)
 	}
 }
 
-void Mesh::GetAnimationTransform(std::vector<Vqs>& transforms)
+void Mesh::GetAnimationTransform(std::vector<Vqs>& transforms, bool getHierachicalResult)
 {
 	Animation animation = animations[0];
 
@@ -533,7 +533,7 @@ void Mesh::GetAnimationTransform(std::vector<Vqs>& transforms)
 					Vqs result = animation.tracks[i].keyFrames[j].toModelFromBone;
 					result.q = result.q / (magnitude(result.q));
 					// Has parent
-					if (skeleton[i].parentID >= 0)
+					if (skeleton[i].parentID >= 0 && getHierachicalResult)
 					{
 						transforms[i] = transforms[skeleton[i].parentID] * result;
 					}
@@ -557,7 +557,7 @@ void Mesh::GetAnimationTransform(std::vector<Vqs>& transforms)
 				result.q = (result.q) / magnitude(result.q);
 
 				// Has parent
-				if (skeleton[i].parentID >= 0)
+				if (skeleton[i].parentID >= 0 && getHierachicalResult)
 				{
 					transforms[i] = transforms[skeleton[i].parentID] * result;
 				}
@@ -861,18 +861,23 @@ void Mesh::ReadVqs(FileObject* pFile, Vqs& vqs)
 	vqs.s = 1.f;        // Set scale to identity
 }
 
-void Mesh::CalculateInverseKinematics(glm::vec3 targetWorldPosition)
+void Mesh::CalculateInverseKinematics(glm::vec3 targetPositionInModelSpace)
 {
 	std::vector<Vqs> frameVQS;
-	GetAnimationTransform(frameVQS);
+	GetAnimationTransform(frameVQS, false);
 	const int frameSize = static_cast<int>(frameVQS.size());
 	initFrame.resize(static_cast<size_t>(frameSize));
-
+	std::vector<glm::mat4> hierchicalFrame(static_cast<size_t>(frameSize));
 	for (int i = 0; i < frameSize; i++)
 	{
 		initFrame[i] = glm::translate(frameVQS[i].v) * ConvertToMatrix4(frameVQS[i].q) * glm::scale(glm::vec3(frameVQS[i].s));
+		
 	}
 	frame = initFrame;
+	hierchicalFrame = frame;
+	// Frame will be hierchical after adjusting rotations.
+	MakeHierchical(initFrame, frameSize);
+	MakeHierchical(hierchicalFrame, frameSize);
 
 	constexpr float targetAccuracyThreshold = 0.1f;
 	constexpr float movementDetectionThreshold = 0.01f;
@@ -880,7 +885,7 @@ void Mesh::CalculateInverseKinematics(glm::vec3 targetWorldPosition)
 
 	// let asume the current position is the first keyframes of the first animation.
 	glm::vec3 previousEndEffectorPosition;
-	const glm::vec4 endEffectorPositionResult = frame[manipulator[0]] * glm::vec4(0.f, 1.f, 0.f, 1.f);
+	const glm::vec4 endEffectorPositionResult = hierchicalFrame[manipulator[0]] * glm::vec4(0.f, 1.f, 0.f, 1.f);
 	glm::vec3 endEffectorPosition(endEffectorPositionResult.x, endEffectorPositionResult.y, endEffectorPositionResult.z);
 	do
 	{
@@ -888,36 +893,37 @@ void Mesh::CalculateInverseKinematics(glm::vec3 targetWorldPosition)
 
 		for (size_t manipulatorIndex = 0; manipulatorIndex < manipulatorSize; manipulatorIndex++)
 		{
-			const glm::vec4 joint = frame[manipulator[manipulatorIndex]] * glm::vec4(0.f, 0.f, 0.f, 1.f);
-
-			const glm::vec3 targetVector = glm::normalize(glm::vec3(targetWorldPosition.x - joint.x, targetWorldPosition.y - joint.y, targetWorldPosition.z - joint.z));
+			const glm::vec4 joint = hierchicalFrame[manipulator[manipulatorIndex]] * glm::vec4(0.f, 0.f, 0.f, 1.f);
+			const glm::vec3 targetVector = glm::normalize(glm::vec3(targetPositionInModelSpace.x - joint.x, targetPositionInModelSpace.y - joint.y, targetPositionInModelSpace.z - joint.z));
 			const glm::vec3 endEffectorVector = glm::normalize(glm::vec3(endEffectorPosition.x - joint.x, endEffectorPosition.y - joint.y, endEffectorPosition.z - joint.z));
 
 			// Get rotation variables
-			float angleBetweenTargetAndEE = acosf(glm::dot(targetVector, endEffectorVector));
+			float angleBetweenTargetAndEE = acosf(glm::dot(endEffectorVector, targetVector));
 			glm::vec3 rotationAxis = glm::cross(endEffectorVector, targetVector);
 
 			// Rotate lk by R_vk(ak) hierarchically
 			glm::mat4 rotationMatrix = glm::rotate(angleBetweenTargetAndEE, rotationAxis);
-			for (size_t hierachyIndex = 0; hierachyIndex <= manipulatorIndex; hierachyIndex++)
 			{
-				// Currently it does not rotate hierarchically and intentionally. Fix it.
-				glm::vec4 localJoint = frame[manipulator[hierachyIndex]] * glm::vec4(0.f, 0.f, 0.f, 1.f);
-				frame[manipulator[hierachyIndex]] = frame[manipulator[hierachyIndex]] * rotationMatrix * glm::translate(glm::vec3(localJoint.x - joint.x, localJoint.y - joint.y, localJoint.z - joint.z));
+				frame[manipulator[manipulatorIndex]] = frame[manipulator[manipulatorIndex]] * rotationMatrix;
 			}
+			hierchicalFrame = frame;
+			MakeHierchical(hierchicalFrame, frameSize);
 
-			const glm::vec4 tmp = frame[manipulator[0]] * glm::vec4(0.f, 1.f, 0.f, 1.f);
+			const glm::vec4 tmp = hierchicalFrame[manipulator[0]] * glm::vec4(0.f, 1.f, 0.f, 1.f);
 			endEffectorPosition.x = tmp.x;
 			endEffectorPosition.y = tmp.y;
 			endEffectorPosition.z = tmp.z;
 			test = endEffectorPosition;
 			// If current EE indicates target,
-			if (glm::length(endEffectorPosition - targetWorldPosition) < targetAccuracyThreshold)
+			if (glm::length(endEffectorPosition - targetPositionInModelSpace) < targetAccuracyThreshold)
 			{
+				MakeHierchical(frame, frameSize);
 				return;
 			}
 		}
-	} while (glm::length(endEffectorPosition - previousEndEffectorPosition) < movementDetectionThreshold);
+	} while (glm::length(endEffectorPosition - previousEndEffectorPosition) > movementDetectionThreshold);
+
+	MakeHierchical(frame, frameSize);
 }
 
 void Mesh::InitManipulator(size_t endEffector)
@@ -927,7 +933,7 @@ void Mesh::InitManipulator(size_t endEffector)
 	{
 		manipulator.push_back(endEffector);
 		endEffector = skeleton[endEffector].parentID;
-	} while (endEffector != -1);
+	} while (endEffector != 0 && manipulator.size() <= 3);
 }
 
 std::vector<glm::mat4> Mesh::GetInverseKinematicFrame()
@@ -943,4 +949,16 @@ std::vector<glm::mat4> Mesh::GetInitialFrame()
 glm::vec3 Mesh::GetTest()
 {
 	return test;
+}
+
+void Mesh::MakeHierchical(std::vector<glm::mat4>& frame, const int frameSize)
+{
+	for (int i = 0; i < frameSize; i++)
+	{
+		if (int parentID = skeleton[i].parentID;
+			parentID >= 0)
+		{
+			frame[i] = frame[parentID] * frame[i];
+		}
+	}
 }

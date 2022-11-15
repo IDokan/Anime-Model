@@ -92,7 +92,7 @@ public:
     glm::mat4 calcAdjustBoundingBoxMatrix();
 
     void GetToBoneFromModel(std::vector<Vqs>& toBoneFromModel);
-    void GetAnimationTransform(std::vector<Vqs>& transforms);
+    void GetAnimationTransform(std::vector<Vqs>& transforms, bool getHierachicalResult = true);
     Vqs GetAnimationTransform(unsigned int index);
     float GetAnimationDuration();
     void UpdateAnimationTimer(float dt, float velocity);
@@ -111,6 +111,7 @@ public:
     std::vector<glm::mat4> GetInverseKinematicFrame();
     std::vector<glm::mat4> GetInitialFrame();
     glm::vec3 GetTest();
+    void MakeHierchical(std::vector<glm::mat4>& frame, const int frameSize);
 
 private:
     // Models
