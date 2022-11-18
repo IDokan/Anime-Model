@@ -95,6 +95,7 @@ public:
     void GetAnimationTransform(std::vector<Vqs>& transforms, bool getHierachicalResult = true);
     Vqs GetAnimationTransform(unsigned int index);
     float GetAnimationDuration();
+    void SetAnimationTimer(float time);
     void UpdateAnimationTimer(float dt, float velocity);
 /// Bin parser functions
 
@@ -107,11 +108,8 @@ public:
 
     // Inverse Kinematics
     void CalculateInverseKinematics(glm::vec3 targetPositionInModelSpace);
+    void GetInverseKinematicAnimationTransform(std::vector<glm::mat4>& transform);
     void InitManipulator(size_t endEffector);
-    std::vector<glm::mat4> GetInverseKinematicFrame();
-    std::vector<glm::mat4> GetInitialFrame();
-    glm::vec3 GetTest();
-    void MakeHierchical(std::vector<glm::mat4>& frame, const int frameSize);
 
 private:
     // Models
@@ -132,11 +130,12 @@ private:
     std::vector<Animation> animations;
     
     // Inverse kinematics
-    std::vector<glm::mat4> inverseKinematicMatrix;
+    void MakeHierchical(std::vector<glm::mat4>& frame, const int frameSize);
+    void CalculateInverseKinematics(std::vector<glm::mat4>& frame, const int frameSize, const glm::vec3 targetPositionInModelSpace, const glm::vec3 startPosition);
+    std::vector<std::vector<glm::mat4>> inverseKinematicMatrices;
     std::vector<size_t> manipulator;
-    std::vector<glm::mat4> initFrame;
-    std::vector<glm::mat4> frame;
     glm::vec3 test;
+    int interpolatedPositionCount;
 
     // boundingBox[0] -> minimum point, boundingBox[1] -> maximum point
     glm::vec3               boundingBox[2];

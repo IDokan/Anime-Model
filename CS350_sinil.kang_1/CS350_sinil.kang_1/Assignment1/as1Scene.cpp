@@ -42,7 +42,7 @@ AS1Scene::AS1Scene(int width, int height)
 	:Scene(width, height),
 	angleOfRotate(0), showSkeleton(false),
 	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f),
-	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(true), velocity(0.f), startPosition(), ballPosition()
+	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(false), velocity(0.f), startPosition(), ballPosition()
 {
 	sphereMesh = new Mesh();
 	orbitMesh = new Mesh();
@@ -82,7 +82,7 @@ AS1Scene::AS1Scene(int width, int height)
 	pathLine = new LineMesh();
 
 	startPosition = glm::vec3(8.f, -4.9f, -2.f);
-	ballPosition = glm::vec3(-2.f, -2.5f, 0.5f);
+	ballPosition = glm::vec3(-2.f, -2.5f, 1.5f);
 }
 
 AS1Scene::~AS1Scene()
@@ -111,6 +111,7 @@ int AS1Scene::Init()
 		glm::rotate(270.f * toPI, glm::vec3(1.f, 0.f, 0.f));
 	const auto result = glm::inverse(centerMatrix) * glm::vec4(ballPosition.x, ballPosition.y, ballPosition.z, 1.f);
 	centerMesh->CalculateInverseKinematics(glm::vec3(result.x, result.y, result.z));
+	//centerMesh->CalculateInverseKinematics(glm::vec3(0.0764216334, 1.09308767, 0.757557452));
 
 	CreateAnimationMat4BlockNames(animationMat4BlockNames, animationMat4BlockNameSize, centerMesh->GetSkeleton().size());
 
@@ -153,9 +154,13 @@ int AS1Scene::preRender(float dt)
 		if (timer < 8.f)
 		{
 			timer += dt;
+			centerMesh->SetAnimationTimer(timer);
 		}
 	}
-	centerMesh->UpdateAnimationTimer(dt, velocity);
+	//if (playAnimation)
+	//{
+	//	centerMesh->UpdateAnimationTimer(dt, velocity);
+	//}
 
 	glClearColor(clearColor.x, clearColor.y, clearColor.z, 1.f);
 
@@ -893,16 +898,12 @@ void AS1Scene::DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMe
 	//glm::vec3 targetPositionInModelSpace = inverse(centerMatrix) * centerMatrix * glm::translate(glm::vec3(0.f, -2.f, 1.f));
 
 	velocity = VelocityByTime(timer);
-
 	std::vector<Vqs> toBoneFromModel;
 	mesh->GetToBoneFromModel(toBoneFromModel);
 	std::vector<Vqs> transformsData;
 	mesh->GetAnimationTransform(transformsData);
-	std::vector<glm::mat4> inverseKinematic = mesh->GetInverseKinematicFrame();
-	if (playAnimation == true)
-	{
-		inverseKinematic = mesh->GetInitialFrame();
-	}
+	std::vector<glm::mat4> inverseKinematic;
+	mesh->GetInverseKinematicAnimationTransform(inverseKinematic);
 	
 	const int skeletonCount = static_cast<int>(transformsData.size());
 	std::vector<glm::mat4> animationMat4Data(skeletonCount);

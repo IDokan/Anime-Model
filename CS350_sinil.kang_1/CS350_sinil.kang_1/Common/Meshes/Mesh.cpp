@@ -51,7 +51,7 @@ void Mesh::initData()
 }
 
 Mesh::Mesh(bool binParserMode)
-	: binParserMode(binParserMode), animTimer(0.f), animCyclePerSecond(1.f)
+	: binParserMode(binParserMode), animTimer(0.f), animCyclePerSecond(1.f), interpolatedPositionCount(0)
 {
 }
 
@@ -630,16 +630,24 @@ float Mesh::GetAnimationDuration()
 	return animations[0].duration;
 }
 
+void Mesh::SetAnimationTimer(float time)
+{
+	animTimer = time;
+}
+
 void Mesh::UpdateAnimationTimer(float dt, float velocity)
 {
 	Animation animation = animations[0];
 
 	constexpr float P = 2.f;
-	animTimer += dt * velocity / P;
-	if (animTimer > animation.duration)
-	{
-		animTimer -= animation.duration * static_cast<int>(animTimer / animation.duration);
-	}
+	// Disable velocity features
+		// -> It indicates path walking features has been disabled.
+	// @@TODO:: Enable 	it again!
+	animTimer += dt /** velocity / P*/;
+	//if (animTimer > animation.duration)
+	//{
+	//	animTimer -= animation.duration * static_cast<int>(animTimer / animation.duration);
+	//}
 }
 
 bool Mesh::LoadBinFile(const std::string& path)
@@ -866,17 +874,102 @@ void Mesh::CalculateInverseKinematics(glm::vec3 targetPositionInModelSpace)
 	std::vector<Vqs> frameVQS;
 	GetAnimationTransform(frameVQS, false);
 	const int frameSize = static_cast<int>(frameVQS.size());
-	initFrame.resize(static_cast<size_t>(frameSize));
-	std::vector<glm::mat4> hierchicalFrame(static_cast<size_t>(frameSize));
+	inverseKinematicMatrices.push_back(std::vector<glm::mat4>(static_cast<size_t>(frameSize)));
+
 	for (int i = 0; i < frameSize; i++)
 	{
-		initFrame[i] = glm::translate(frameVQS[i].v) * ConvertToMatrix4(frameVQS[i].q) * glm::scale(glm::vec3(frameVQS[i].s));
-		
+		// inverseKinematicMatrices[0] == initial frame
+		inverseKinematicMatrices[0][i] = glm::translate(frameVQS[i].v) * ConvertToMatrix4(frameVQS[i].q) * glm::scale(glm::vec3(frameVQS[i].s));
 	}
-	frame = initFrame;
-	hierchicalFrame = frame;
-	// Frame will be hierchical after adjusting rotations.
-	MakeHierchical(initFrame, frameSize);
+
+	// Interpolate here
+	float angleBetween = 1.f;
+	interpolatedPositionCount = 4;
+	std::vector<glm::vec3> interpolatedPositions(interpolatedPositionCount + 1);
+	const glm::vec4 currentPositionV4 = inverseKinematicMatrices[0][manipulator[0]] * glm::vec4(0.f, 1.f, 0.f, 1.f);
+	const glm::vec3 currentPositionV3(currentPositionV4.x, currentPositionV4.y, currentPositionV4.z);
+
+	interpolatedPositions[0] = currentPositionV3;
+	float t = 1.f / interpolatedPositionCount;
+	for (int i = 1; i <= interpolatedPositionCount; i++)
+	{
+		const float sinAngle = sinf(angleBetween);
+		interpolatedPositions[i] = sinf((1.f - (t * i)) * angleBetween) / sinAngle * currentPositionV3 +
+			sinf(t * i * angleBetween) / sinAngle * targetPositionInModelSpace
+			;
+	}
+	//@@@@ TODO: it does not produce realistic motion
+	// Frame will be hierarchical after copied.
+	for (int i = 1; i <= interpolatedPositionCount; i++)
+	{
+		// Initialize with non hierarchical animation data
+		inverseKinematicMatrices.push_back(inverseKinematicMatrices[i - 1]);
+		CalculateInverseKinematics(inverseKinematicMatrices[i], frameSize, interpolatedPositions[i], interpolatedPositions[i - 1]);
+	}
+
+	for (size_t i = 0; i < inverseKinematicMatrices.size(); i++)
+	{
+		MakeHierchical(inverseKinematicMatrices[i], frameSize);
+	}
+}
+
+void Mesh::GetInverseKinematicAnimationTransform(std::vector<glm::mat4>& transform)
+{
+	if (interpolatedPositionCount <= 0)
+	{
+		// Should Call CalculateInverseKinematics first!
+		return;
+	}
+	constexpr float maxTime = 3.f;
+	if (animTimer >= maxTime)
+	{
+		transform = inverseKinematicMatrices.back();
+		return;
+	}
+
+	const float stepSize = maxTime / interpolatedPositionCount;
+	int transformIndex = static_cast<int>(animTimer / stepSize);
+	int nextTransformIndex = transformIndex + 1;
+
+	const size_t frameSize = inverseKinematicMatrices[0].size();
+	transform.resize(frameSize);
+	for (size_t i = 0; i < frameSize; i++)
+	{
+		float t = (animTimer - (transformIndex * stepSize)) / stepSize;
+
+		transform[i] = (1 - t) * inverseKinematicMatrices[transformIndex][i] + (t * inverseKinematicMatrices[nextTransformIndex][i]);
+	}
+}
+
+void Mesh::InitManipulator(size_t endEffector)
+{
+	manipulator.clear();
+	//do
+	//{
+	//	manipulator.push_back(endEffector);
+	//	endEffector = skeleton[endEffector].parentID;
+	//} while (endEffector != 0 && manipulator.size() <= 3);
+
+	manipulator.push_back(13);
+	//manipulator.push_back(12);
+	manipulator.push_back(11);
+}
+
+void Mesh::MakeHierchical(std::vector<glm::mat4>& frame, const int frameSize)
+{
+	for (int i = 0; i < frameSize; i++)
+	{
+		if (int parentID = skeleton[i].parentID;
+			parentID >= 0)
+		{
+			frame[i] = frame[parentID] * frame[i];
+		}
+	}
+}
+
+void Mesh::CalculateInverseKinematics(std::vector<glm::mat4>& frame, const int frameSize, const glm::vec3 targetPositionInModelSpace, const glm::vec3 startPosition)
+{
+	std::vector<glm::mat4> hierchicalFrame(frame);
 	MakeHierchical(hierchicalFrame, frameSize);
 
 	constexpr float targetAccuracyThreshold = 0.1f;
@@ -885,8 +978,8 @@ void Mesh::CalculateInverseKinematics(glm::vec3 targetPositionInModelSpace)
 
 	// let asume the current position is the first keyframes of the first animation.
 	glm::vec3 previousEndEffectorPosition;
-	const glm::vec4 endEffectorPositionResult = hierchicalFrame[manipulator[0]] * glm::vec4(0.f, 1.f, 0.f, 1.f);
-	glm::vec3 endEffectorPosition(endEffectorPositionResult.x, endEffectorPositionResult.y, endEffectorPositionResult.z);
+	glm::vec3 endEffectorPosition(startPosition);
+	bool isEEpointedTarget = false;
 	do
 	{
 		previousEndEffectorPosition = endEffectorPosition;
@@ -917,48 +1010,9 @@ void Mesh::CalculateInverseKinematics(glm::vec3 targetPositionInModelSpace)
 			// If current EE indicates target,
 			if (glm::length(endEffectorPosition - targetPositionInModelSpace) < targetAccuracyThreshold)
 			{
-				MakeHierchical(frame, frameSize);
-				return;
+				isEEpointedTarget = true;
+				break;
 			}
 		}
-	} while (glm::length(endEffectorPosition - previousEndEffectorPosition) > movementDetectionThreshold);
-
-	MakeHierchical(frame, frameSize);
-}
-
-void Mesh::InitManipulator(size_t endEffector)
-{
-	manipulator.clear();
-	do
-	{
-		manipulator.push_back(endEffector);
-		endEffector = skeleton[endEffector].parentID;
-	} while (endEffector != 0 && manipulator.size() <= 3);
-}
-
-std::vector<glm::mat4> Mesh::GetInverseKinematicFrame()
-{
-	return frame;
-}
-
-std::vector<glm::mat4> Mesh::GetInitialFrame()
-{
-	return initFrame;
-}
-
-glm::vec3 Mesh::GetTest()
-{
-	return test;
-}
-
-void Mesh::MakeHierchical(std::vector<glm::mat4>& frame, const int frameSize)
-{
-	for (int i = 0; i < frameSize; i++)
-	{
-		if (int parentID = skeleton[i].parentID;
-			parentID >= 0)
-		{
-			frame[i] = frame[parentID] * frame[i];
-		}
-	}
+	} while (glm::length(endEffectorPosition - previousEndEffectorPosition) > movementDetectionThreshold && !isEEpointedTarget);
 }
