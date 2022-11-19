@@ -188,6 +188,7 @@ private:
 	std::vector<std::pair<glm::vec3, glm::vec3>> interpolatedPointsForCurve;
 
 	glm::vec3 startPosition;
+	glm::vec3 tempBallPosition;
 	glm::vec3 ballPosition;
 };
 

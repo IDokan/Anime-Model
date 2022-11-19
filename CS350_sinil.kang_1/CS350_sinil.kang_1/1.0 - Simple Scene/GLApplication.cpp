@@ -88,8 +88,10 @@ namespace WindowCallbackFunctions
 
     void MousePositionCallback(GLFWwindow* _window, double xPos, double yPos)
     {
+
         glm::ivec2 size;
         glfwGetWindowSize(_window, &size.x, &size.y);
+        input.SetRawMousePos((static_cast<float>(xPos) * 2.f / size.x) - 1.f, 1.f - (static_cast<float>(yPos) * 2.f / size.y));
 
         WindowSizePosition result = GetWindowValueByResolution(WindowSizePosition{ static_cast<float>(size.x), static_cast<float>(size.y) });
 

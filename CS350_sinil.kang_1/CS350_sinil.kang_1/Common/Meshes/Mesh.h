@@ -110,6 +110,7 @@ public:
     void CalculateInverseKinematics(glm::vec3 targetPositionInModelSpace);
     void GetInverseKinematicAnimationTransform(std::vector<glm::mat4>& transform);
     void InitManipulator(size_t endEffector);
+    glm::vec3 GetTest();
 
 private:
     // Models

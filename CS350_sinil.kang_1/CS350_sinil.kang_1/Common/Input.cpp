@@ -133,6 +133,11 @@ glm::vec2 Input::GetMousePosition() const noexcept
 	return mousePosition;
 }
 
+glm::vec2 Input::GetMouseRawPosition() const noexcept
+{
+	return mouseRawPosition;
+}
+
 bool Input::IsMouseButtonTriggered(int button)
 {
 	return mouseButtonTriggered[button];
@@ -167,3 +172,10 @@ void Input::SetMousePos(GLFWwindow* window, float xPos, float yPos)
 	mousePosition.x = -(x / 2.0f - xPos);
 	mousePosition.y = y / 2.0f - yPos;
 }
+
+void Input::SetRawMousePos(float xPos, float yPos)
+{
+	mouseRawPosition.x = xPos;
+	mouseRawPosition.y = yPos;
+}
+

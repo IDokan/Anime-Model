@@ -23,6 +23,7 @@ public:
 	void TriggeredReset();
 	void SetKeyboardInput(int key, int action);
 	void SetMousePos(GLFWwindow* window, float xPos, float yPos);
+	void SetRawMousePos(float xPos, float yPos);
 	void SetMouseButtonInput(int button, int action);
 	void SetMouseWheel(double x, double y);
 
@@ -33,6 +34,7 @@ public:
 	glm::vec2 GetPresentMousePosition() const noexcept;
 	void SetPresentMousePosition(const glm::vec2& mousePosition) noexcept;
 	glm::vec2 GetMousePosition() const  noexcept;
+	glm::vec2 GetMouseRawPosition() const noexcept;
 	double MouseWheelScroll();
 	bool IsMouseButtonPressed(int button);
 	bool IsMouseButtonTriggered(int button);
@@ -46,6 +48,7 @@ private:
 
 	glm::vec2 presentMousePosition{};
 	glm::vec2 mousePosition{};
+	glm::vec2 mouseRawPosition{};
 	std::bitset<GLFW_MOUSE_BUTTON_LAST> mouseButtonTriggered;
 	std::bitset<GLFW_MOUSE_BUTTON_LAST> mouseButtonPressed;
 	std::bitset<GLFW_MOUSE_BUTTON_LAST> mouseButtonReleased;
