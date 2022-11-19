@@ -870,6 +870,8 @@ void Mesh::ReadVqs(FileObject* pFile, Vqs& vqs)
 
 void Mesh::CalculateInverseKinematics(glm::vec3 targetPositionInModelSpace)
 {
+	inverseKinematicMatrices.clear();
+
 	std::vector<Vqs> frameVQS;
 	GetAnimationTransform(frameVQS, false);
 	const int frameSize = static_cast<int>(frameVQS.size());
@@ -947,15 +949,14 @@ void Mesh::GetInverseKinematicAnimationTransform(std::vector<glm::mat4>& transfo
 void Mesh::InitManipulator(size_t endEffector)
 {
 	manipulator.clear();
-	//do
-	//{
-	//	manipulator.push_back(endEffector);
-	//	endEffector = skeleton[endEffector].parentID;
-	//} while (endEffector != 0 && manipulator.size() <= 3);
+	do
+	{
+		manipulator.push_back(endEffector);
+		endEffector = skeleton[endEffector].parentID;
+	} while (endEffector != 0);
 
-	manipulator.push_back(13);
-	//manipulator.push_back(12);
-	manipulator.push_back(11);
+	//manipulator.push_back(13);
+	//manipulator.push_back(11);
 }
 
 glm::vec3 Mesh::GetTest()
@@ -1035,5 +1036,4 @@ void Mesh::CalculateInverseKinematics(std::vector<glm::mat4>& frame, const int f
 			}
 		}
 	} while (glm::length(endEffectorPosition - previousEndEffectorPosition) > movementDetectionThreshold && !isEEpointedTarget);
-	std::cout << i << std::endl;
 }

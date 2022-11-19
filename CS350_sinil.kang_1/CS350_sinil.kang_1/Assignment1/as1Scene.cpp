@@ -42,7 +42,7 @@ AS1Scene::AS1Scene(int width, int height)
 	:Scene(width, height),
 	angleOfRotate(0), showSkeleton(false),
 	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f),
-	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(true), velocity(0.f), startPosition(), ballPosition()
+	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(true), velocity(0.f), playInverseKinematic(false), startPosition(), ballPosition()
 {
 	sphereMesh = new Mesh();
 	orbitMesh = new Mesh();
@@ -84,6 +84,7 @@ AS1Scene::AS1Scene(int width, int height)
 	startPosition = glm::vec3(8.f, -1.9f, -2.f);
 	ballPosition = glm::vec3(-0.8f, -2.f, 0.5f);
 	tempBallPosition = ballPosition;
+	inverseKinematicPosition = tempBallPosition + glm::vec3(0.f, 2.3f, 0.f) + (normalize(tempBallPosition - startPosition) * 1.75f);
 }
 
 AS1Scene::~AS1Scene()
@@ -103,15 +104,8 @@ int AS1Scene::Init()
 
 	centerMesh->LoadBinFile("../Common/Meshes/models/Joe.bin");
 
-	//const unsigned int EEIndex = 13;
-	//centerMesh->InitManipulator(EEIndex);
-
-	//float toPI= glm::pi<float>() / 180.f;
-	//centerMatrix =
-	//	glm::translate(glm::vec3(0.f, -3.f, 0.f)) *
-	//	glm::rotate(270.f * toPI, glm::vec3(1.f, 0.f, 0.f));
-	//const auto result = glm::inverse(centerMatrix) * glm::vec4(ballPosition.x, ballPosition.y, ballPosition.z, 1.f);
-	//centerMesh->CalculateInverseKinematics(glm::vec3(result.x, result.y, result.z));
+	const unsigned int EEIndex = 28;
+	centerMesh->InitManipulator(EEIndex);
 
 	CreateAnimationMat4BlockNames(animationMat4BlockNames, animationMat4BlockNameSize, centerMesh->GetSkeleton().size());
 
@@ -150,15 +144,26 @@ int AS1Scene::preRender(float dt)
 {
 	if (playAnimation)
 	{
-
-		if (timer < 8.f)
+		timer += dt;
+		// Move
+		if (timer <= 2.f)
 		{
-			timer += dt;
+			centerMesh->UpdateAnimationTimer(dt, velocity);
+			playInverseKinematic = false;
 		}
-	}	
-	if (playAnimation)
-	{
-		centerMesh->UpdateAnimationTimer(dt, velocity);
+		// Invser Kinematic
+		else
+		{
+			centerMesh->SetAnimationTimer(timer - 2.f);
+
+			if (playInverseKinematic == false)
+			{
+				playInverseKinematic = true;
+
+				const auto result = glm::inverse(centerMatrix) * glm::vec4(inverseKinematicPosition.x, inverseKinematicPosition.y, inverseKinematicPosition.z, 1.f);
+				centerMesh->CalculateInverseKinematics(glm::vec3(result.x, result.y, result.z));
+			}
+		}
 	}
 
 	UpdateCamera();
@@ -197,6 +202,7 @@ int AS1Scene::preRender(float dt)
 		tempBallPosition.x = ballPos.x;
 		tempBallPosition.y = ballPos.y;
 		tempBallPosition.z = ballPos.z;
+		inverseKinematicPosition = tempBallPosition + glm::vec3(0.f, 2.3f, 0.f) + (normalize(tempBallPosition - position) * 1.75f);
 	}
 	else if(mousePressedPreviousFrame)
 	{
@@ -261,10 +267,10 @@ int AS1Scene::Render(float dt)
 
 	floorObjMesh->Draw(floorMesh->getIndexBufferSize());
 
-	DrawModelAndAnimation(centerMesh, centerObjMesh, skeletonLines, cameraP, animationMat4BlockNames, centerMatrix, dt);
+	DrawModelAndAnimation(centerMesh, centerObjMesh, skeletonLines, cameraP, animationMat4BlockNames, centerMatrix, dt, playInverseKinematic);
 
 	spheres->PrepareDrawing();
-	glm::mat4 sphereMatrix = glm::translate(tempBallPosition + glm::vec3(0.f, 2.f, 0.f)) * glm::scale(glm::vec3(0.1f, 0.1f, 0.1f)) * sphereMesh->calcAdjustBoundingBoxMatrix();
+	glm::mat4 sphereMatrix = glm::translate(inverseKinematicPosition) * glm::scale(glm::vec3(0.1f, 0.1f, 0.1f)) * sphereMesh->calcAdjustBoundingBoxMatrix();
 	glm::vec3 white(1.f, 1.f, 1.f);
 	spheres->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
 	spheres->SendUniformFloatMatrix4("objToWorld", &sphereMatrix[0][0]);
@@ -622,12 +628,12 @@ float AS1Scene::InverseArcLength(float s)
 float AS1Scene::DistanceByTime(float t)
 {
 	//const static float t1 = centerMesh->GetAnimationDuration() / 8.f, t7 = centerMesh->GetAnimationDuration() * 7.f / 8.f, t8 = centerMesh->GetAnimationDuration();
-	const static float t1 = 2.f, t7 = 6.f, t8 = 8.f;
+	const static float t1 = 0.5f, t7 = 1.5f, t8 = 2.f;
 
 
 	if (t > t8)
 	{
-		return t8;
+		return 1.f;
 	}
 
 	float result = 0.f;
@@ -652,7 +658,7 @@ float AS1Scene::DistanceByTime(float t)
 
 float AS1Scene::VelocityByTime(float t)
 {
-	const static float t1 = 2.f, t7 = 6.f, t8 = 8.f;
+	const static float t1 = 0.5f, t7 = 1.5f, t8 = 2.f;
 
 
 	if (t > t8)
@@ -923,7 +929,7 @@ void AS1Scene::DestroyAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSize
 	delete[] names;
 }
 
-void AS1Scene::DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMesh* skeleton, Point& p, GLchar**& blockNames, glm::mat4& matrix, float dt)
+void AS1Scene::DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMesh* skeleton, Point& p, GLchar**& blockNames, glm::mat4& matrix, float dt, bool playInverseKinematic)
 {
 	//glm::vec3 targetPositionInModelSpace = inverse(centerMatrix) * centerMatrix * glm::translate(glm::vec3(0.f, -2.f, 1.f));
 
@@ -931,19 +937,35 @@ void AS1Scene::DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMe
 	std::vector<Vqs> toBoneFromModel;
 	mesh->GetToBoneFromModel(toBoneFromModel);
 	std::vector<Vqs> transformsData;
-	mesh->GetAnimationTransform(transformsData);
-	// std::vector<glm::mat4> inverseKinematic;
-	// mesh->GetInverseKinematicAnimationTransform(inverseKinematic);
-	
-	const int skeletonCount = static_cast<int>(transformsData.size());
-	std::vector<glm::mat4> animationMat4Data(skeletonCount);
-	for (int i = 0; i < skeletonCount; i++)
-	{
-		Vqs toModel = transformsData[i] * toBoneFromModel[i];
-		// toModel.q = toModel.q / magnitude(toModel.q);
-		animationMat4Data[i] = glm::translate(toModel.v) * ConvertToMatrix4(toModel.q) * glm::scale(glm::vec3(toModel.s));
+	std::vector<glm::mat4> inverseKinematic;
 
-		//animationMat4Data[i] = inverseKinematic[i] * glm::translate(toBoneFromModel[i].v) * ConvertToMatrix4(toBoneFromModel[i].q) * glm::scale(glm::vec3(toBoneFromModel[i].s));
+	if (playInverseKinematic)
+	{
+		mesh->GetInverseKinematicAnimationTransform(inverseKinematic);
+	}
+	else
+	{
+		mesh->GetAnimationTransform(transformsData);
+	}
+
+	const int skeletonCount = static_cast<int>((playInverseKinematic) ? inverseKinematic.size() : transformsData.size());
+	std::vector<glm::mat4> animationMat4Data(skeletonCount);
+	
+
+	if (playInverseKinematic)
+	{
+		for (int i = 0; i < skeletonCount; i++)
+		{
+			animationMat4Data[i] = inverseKinematic[i] * glm::translate(toBoneFromModel[i].v) * ConvertToMatrix4(toBoneFromModel[i].q) * glm::scale(glm::vec3(toBoneFromModel[i].s));
+		}
+	}
+	else
+	{
+		for (int i = 0; i < skeletonCount; i++)
+		{
+			Vqs toModel = transformsData[i] * toBoneFromModel[i];
+			animationMat4Data[i] = glm::translate(toModel.v) * ConvertToMatrix4(toModel.q) * glm::scale(glm::vec3(toModel.s));
+		}
 	}
 
 

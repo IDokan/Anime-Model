@@ -105,7 +105,7 @@ private:
 	void CreateAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSizeRef, const size_t size);
 	void DestroyAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSizeRef);
 
-	void DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMesh* skeleton, Point& p, GLchar**& blockNames, glm::mat4& matrix, float dt);
+	void DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMesh* skeleton, Point& p, GLchar**& blockNames, glm::mat4& matrix, float dt, bool playInverseKinematic = false);
 private:
 	Mesh* sphereMesh;
 	Mesh* orbitMesh;
@@ -183,13 +183,17 @@ private:
 	float timer;
 	bool playAnimation;
 	float velocity;
+	bool playInverseKinematic;
 
 	std::vector<glm::vec3> controlPoints;
 	std::vector<std::pair<glm::vec3, glm::vec3>> interpolatedPointsForCurve;
 
 	glm::vec3 startPosition;
+	// Display position when players pressed right mouse button
 	glm::vec3 tempBallPosition;
+	// Ball position to calculate
 	glm::vec3 ballPosition;
+	glm::vec3 inverseKinematicPosition;
 };
 
 #endif // AS1_SCENE_H
