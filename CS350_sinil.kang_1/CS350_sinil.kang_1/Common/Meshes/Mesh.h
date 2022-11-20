@@ -107,7 +107,7 @@ public:
     void ReadVqs(FileObject* pFile, Vqs& vqs);
 
     // Inverse Kinematics
-    void CalculateInverseKinematics(glm::vec3 targetPositionInModelSpace);
+    void CalculateInverseKinematics(glm::vec3 targetPositionInModelSpace, bool enforced = false, int interpolatedPositionCount = 4);
     void GetInverseKinematicAnimationTransform(std::vector<glm::mat4>& transform);
     void InitManipulator(size_t endEffector);
     glm::vec3 GetTest();
@@ -134,11 +134,12 @@ private:
     
     // Inverse kinematics
     void MakeHierchical(std::vector<glm::mat4>& frame, const int frameSize);
-    bool CalculateInverseKinematics(std::vector<glm::mat4>& frame, const int frameSize, const glm::vec3 targetPositionInModelSpace, const glm::vec3 startPosition);
+    glm::vec3 CalculateInverseKinematics(std::vector<glm::mat4>& frame, const int frameSize, const glm::vec3 targetPositionInModelSpace, const glm::vec3 startPosition, bool enforced = false);
     glm::vec3 ExportEulerAngleData(glm::mat4 rotationMatrix);
     void ClampAngles(glm::vec3& eularAngles, size_t manipulatorIndex);
     std::vector<std::vector<glm::mat4>> inverseKinematicMatrices;
     std::vector<size_t> manipulator;
+    size_t endEffectorIndex;
     std::vector<std::pair<glm::vec3, glm::vec3>> initEularAngleConstraints;
     std::vector<std::pair<glm::vec3, glm::vec3>> eularAngleConstraints;
     glm::vec3 test;

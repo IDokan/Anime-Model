@@ -42,7 +42,7 @@ AS1Scene::AS1Scene(int width, int height)
 	:Scene(width, height),
 	angleOfRotate(0), showSkeleton(false),
 	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f),
-	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(true), velocity(0.f), playInverseKinematic(false), startPosition(), ballPosition()
+	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(true), velocity(0.f), playInverseKinematic(false), enforcedJointConstraints(false), interpolatedPositionCount(4), startPosition(), ballPosition()
 {
 	sphereMesh = new Mesh();
 	orbitMesh = new Mesh();
@@ -104,7 +104,7 @@ int AS1Scene::Init()
 
 	centerMesh->LoadBinFile("../Common/Meshes/models/Joe.bin");
 
-	const unsigned int EEIndex = 28;
+	const unsigned int EEIndex = 29;
 	centerMesh->InitManipulator(EEIndex);
 
 	CreateAnimationMat4BlockNames(animationMat4BlockNames, animationMat4BlockNameSize, centerMesh->GetSkeleton().size());
@@ -161,7 +161,7 @@ int AS1Scene::preRender(float dt)
 				playInverseKinematic = true;
 
 				const auto result = glm::inverse(centerMatrix) * glm::vec4(inverseKinematicPosition.x, inverseKinematicPosition.y, inverseKinematicPosition.z, 1.f);
-				centerMesh->CalculateInverseKinematics(glm::vec3(result.x, result.y, result.z));
+				centerMesh->CalculateInverseKinematics(glm::vec3(result.x, result.y, result.z), enforcedJointConstraints, interpolatedPositionCount);
 
 				//centerMesh->CalculateInverseKinematics(glm::vec3(-0.309540778, -1.74187970, 1.81932592));
 			}
@@ -726,6 +726,7 @@ void AS1Scene::AddMembersToGUI()
 	MyImGUI::SetNormalDisplayReferences(&showSkeleton);
 	MyImGUI::SetAnimationReferences(&playAnimation, &timer, centerMesh->GetAnimationDuration());
 	MyImGUI::SetDisplayReferences(&velocity);
+	MyImGUI::SetInverseKienematicReferences(&enforcedJointConstraints, &interpolatedPositionCount);
 }
 
 void AS1Scene::DrawVertexNormals()
