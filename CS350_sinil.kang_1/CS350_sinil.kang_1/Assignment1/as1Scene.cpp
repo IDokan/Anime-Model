@@ -65,7 +65,7 @@ AS1Scene::AS1Scene(int width, int height)
 	cartesianUpVector = Vector(0.f, 1.f, 0.f);
 
 
-	eyePoint = Point(0.f, 5.f,15.f);
+	eyePoint = Point(0.f, 5.f, 15.f);
 	targetPoint = Point(0.f, 0.f, 0.f);
 	fov = static_cast<float>(M_PI_2);
 	width = _windowWidth;
@@ -162,6 +162,8 @@ int AS1Scene::preRender(float dt)
 
 				const auto result = glm::inverse(centerMatrix) * glm::vec4(inverseKinematicPosition.x, inverseKinematicPosition.y, inverseKinematicPosition.z, 1.f);
 				centerMesh->CalculateInverseKinematics(glm::vec3(result.x, result.y, result.z));
+
+				//centerMesh->CalculateInverseKinematics(glm::vec3(-0.309540778, -1.74187970, 1.81932592));
 			}
 		}
 	}
@@ -202,9 +204,9 @@ int AS1Scene::preRender(float dt)
 		tempBallPosition.x = ballPos.x;
 		tempBallPosition.y = ballPos.y;
 		tempBallPosition.z = ballPos.z;
-		inverseKinematicPosition = tempBallPosition + glm::vec3(0.f, 2.3f, 0.f) + (normalize(tempBallPosition - position) * 1.75f);
+		inverseKinematicPosition = tempBallPosition + glm::vec3(0.f, 2.f, 0.f) + (normalize(tempBallPosition - position) * 2.f);
 	}
-	else if(mousePressedPreviousFrame)
+	else if (mousePressedPreviousFrame)
 	{
 		timer = 0.f;
 		centerMesh->SetAnimationTimer(0.f);
@@ -242,7 +244,7 @@ int AS1Scene::preRender(float dt)
 		pathControl *
 		glm::rotate(270.f * displacementToPi, glm::vec3(1.f, 0.f, 0.f)) *
 		glm::scale(scaleVector);
-	
+
 	// @@ Path control
 
 	floorMatrix = glm::translate(glm::vec3(0.f, -2.f, 0.f)) * glm::rotate(glm::half_pi<float>(), glm::vec3(1.f, 0.f, 0.f)) * glm::scale(glm::vec3(10.f, 10.f, 1.f)) * floorMesh->calcAdjustBoundingBoxMatrix();
@@ -280,7 +282,8 @@ int AS1Scene::Render(float dt)
 
 	const unsigned int EEIndex = 14;
 	Vqs toEE = centerMesh->GetAnimationTransform(EEIndex);
-	glm::mat4 objToEEToWorld = glm::translate(tempBallPosition);
+	//glm::mat4 objToEEToWorld = glm::translate(tempBallPosition);
+	glm::mat4 objToEEToWorld = centerMatrix * glm::translate(centerMesh->GetTest());
 
 	glm::vec3 EEcolor(0.f, 1.f, 0.f);
 	spheres->PrepareDrawing();
@@ -505,7 +508,7 @@ glm::vec3 AS1Scene::BezierCurve(float u)
 void AS1Scene::GetPreviousAndNextIndices(int i, int size, int& previous, int& next)
 {
 	previous = ((i - 1) < 0) ? 0 : (i - 1);
-	next = ((i + 1) >= size) ? size - 1 : i+1;
+	next = ((i + 1) >= size) ? size - 1 : i + 1;
 }
 
 void AS1Scene::BuildTable()
@@ -692,7 +695,7 @@ float AS1Scene::EaseIn(float t, float maxT)
 float AS1Scene::DerivativeEaseIn(float t, float maxT)
 {
 	const float pi = glm::pi<float>();
-	return pi * cos(pi*(t - maxT)/(2*maxT)) / 2.f;
+	return pi * cos(pi * (t - maxT) / (2 * maxT)) / 2.f;
 }
 
 float AS1Scene::Linear(float t, float t1)
@@ -931,14 +934,13 @@ void AS1Scene::DestroyAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSize
 
 void AS1Scene::DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMesh* skeleton, Point& p, GLchar**& blockNames, glm::mat4& matrix, float dt, bool playInverseKinematic)
 {
-	//glm::vec3 targetPositionInModelSpace = inverse(centerMatrix) * centerMatrix * glm::translate(glm::vec3(0.f, -2.f, 1.f));
-
 	velocity = VelocityByTime(timer);
 	std::vector<Vqs> toBoneFromModel;
 	mesh->GetToBoneFromModel(toBoneFromModel);
 	std::vector<Vqs> transformsData;
 	std::vector<glm::mat4> inverseKinematic;
 
+	// Real code
 	if (playInverseKinematic)
 	{
 		mesh->GetInverseKinematicAnimationTransform(inverseKinematic);
@@ -950,7 +952,7 @@ void AS1Scene::DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMe
 
 	const int skeletonCount = static_cast<int>((playInverseKinematic) ? inverseKinematic.size() : transformsData.size());
 	std::vector<glm::mat4> animationMat4Data(skeletonCount);
-	
+
 
 	if (playInverseKinematic)
 	{
@@ -967,6 +969,8 @@ void AS1Scene::DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMe
 			animationMat4Data[i] = glm::translate(toModel.v) * ConvertToMatrix4(toModel.q) * glm::scale(glm::vec3(toModel.s));
 		}
 	}
+
+
 
 
 	objMesh->PrepareDrawing();

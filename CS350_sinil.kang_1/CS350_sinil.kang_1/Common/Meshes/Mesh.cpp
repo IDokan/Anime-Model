@@ -870,6 +870,7 @@ void Mesh::ReadVqs(FileObject* pFile, Vqs& vqs)
 
 void Mesh::CalculateInverseKinematics(glm::vec3 targetPositionInModelSpace)
 {
+	eularAngleConstraints = initEularAngleConstraints;
 	inverseKinematicMatrices.clear();
 
 	std::vector<Vqs> frameVQS;
@@ -879,36 +880,43 @@ void Mesh::CalculateInverseKinematics(glm::vec3 targetPositionInModelSpace)
 
 	for (int i = 0; i < frameSize; i++)
 	{
-		// inverseKinematicMatrices[0] == initial frame
 		inverseKinematicMatrices[0][i] = glm::translate(frameVQS[i].v) * ConvertToMatrix4(frameVQS[i].q) * glm::scale(glm::vec3(frameVQS[i].s));
 	}
 	std::vector<glm::mat4> initFrame = inverseKinematicMatrices[0];
 	MakeHierchical(initFrame, frameSize);
 
 	// Interpolate here
-	float angleBetween = 1.f;
-	interpolatedPositionCount = 4;
+	interpolatedPositionCount = 5;
 	std::vector<glm::vec3> interpolatedPositions(interpolatedPositionCount + 1);
 	const glm::vec4 currentPositionV4 = initFrame[manipulator[0]] * glm::vec4(0.f, 1.f, 0.f, 1.f);
-	const glm::vec3 currentPositionV3(currentPositionV4.x, currentPositionV4.y, currentPositionV4.z);
+	glm::vec3 currentPositionV3(currentPositionV4.x, currentPositionV4.y, currentPositionV4.z);
+	currentPositionV3 = normalize(currentPositionV3);
+	//float angleBetween = 1.f;
 
 	interpolatedPositions[0] = currentPositionV3;
 	float t = 1.f / interpolatedPositionCount;
 	for (int i = 1; i <= interpolatedPositionCount; i++)
 	{
-		const float sinAngle = sinf(angleBetween);
-		interpolatedPositions[i] = sinf((1.f - (t * i)) * angleBetween) / sinAngle * currentPositionV3 +
-			sinf(t * i * angleBetween) / sinAngle * targetPositionInModelSpace
-			;
+		//const float sinAngle = sinf(angleBetween);
+		//interpolatedPositions[i] = sinf((1.f - (t * i)) * angleBetween) / sinAngle * currentPositionV3 +
+		//	sinf(t * i * angleBetween) / sinAngle * targetPositionInModelSpace
+		//	;
+		interpolatedPositions[i] = (1.f - (t * i)) * currentPositionV3 + (t * i) * targetPositionInModelSpace;
 	}
-	test = interpolatedPositions[1];
+	test = currentPositionV3;
 	//@@@@ TODO: it does not produce realistic motion
 	// Frame will be hierarchical after copied.
 	for (int i = 1; i <= interpolatedPositionCount; i++)
 	{
 		// Initialize with non hierarchical animation data
-		inverseKinematicMatrices.push_back(inverseKinematicMatrices[i - 1]);
-		CalculateInverseKinematics(inverseKinematicMatrices[i], frameSize, interpolatedPositions[i], interpolatedPositions[i - 1]);
+		inverseKinematicMatrices.push_back(inverseKinematicMatrices[0]);
+		if (CalculateInverseKinematics(inverseKinematicMatrices[i], frameSize, interpolatedPositions[i], currentPositionV3) == false)
+		{
+			std::vector<glm::mat4> firstData = inverseKinematicMatrices[0];
+			inverseKinematicMatrices.clear();
+			inverseKinematicMatrices.push_back(firstData);
+			i = 0;
+		}
 	}
 
 	inverseKinematicMatrices[0] = initFrame;
@@ -949,19 +957,41 @@ void Mesh::GetInverseKinematicAnimationTransform(std::vector<glm::mat4>& transfo
 void Mesh::InitManipulator(size_t endEffector)
 {
 	manipulator.clear();
-	do
-	{
-		manipulator.push_back(endEffector);
-		endEffector = skeleton[endEffector].parentID;
-	} while (endEffector != 0);
+	eularAngleConstraints.clear();
+	//do
+	//{
+	//	manipulator.push_back(endEffector);
+	//	endEffector = skeleton[endEffector].parentID;
+	//} while (endEffector != 0);
 
-	//manipulator.push_back(13);
-	//manipulator.push_back(11);
+	const static float pi = glm::pi<float>();
+	manipulator.push_back(29);
+	eularAngleConstraints.push_back(std::pair(glm::vec3(-pi / 4.f, 0.f, -pi / 4.f), glm::vec3(pi / 8.f, 0.f, pi / 4.f)));
+	manipulator.push_back(26);
+	eularAngleConstraints.push_back(std::pair(glm::vec3(-pi / 4.f, 0.f, -pi / 8.f), glm::vec3(pi / 4.f, 0.f, pi / 2.f)));
+	manipulator.push_back(28);
+	eularAngleConstraints.push_back(std::pair(glm::vec3(-pi / 2.f, -pi / 2.f, -pi / 4.f), glm::vec3(2.5f * pi / 8.f, pi / 4.f, 0.f)));
+	manipulator.push_back(25);
+	eularAngleConstraints.push_back(std::pair(glm::vec3(-pi / 16.f, 0.f, 0.f), glm::vec3(pi / 16.f, 0.f, pi / 4.f)));
+	manipulator.push_back(6);
+	eularAngleConstraints.push_back(std::pair(glm::vec3(-pi / 8.f, -pi / 8.f, -pi / 8.f), glm::vec3(pi / 8.f, pi / 8.f, pi / 8.f)));
+
+	initEularAngleConstraints = eularAngleConstraints;
 }
 
 glm::vec3 Mesh::GetTest()
 {
 	return test;
+}
+
+void Mesh::GetInit(std::vector<glm::mat4>& data)
+{
+	data = inverseKinematicMatrices[0];
+}
+
+void Mesh::GetFirst(std::vector<glm::mat4>& data)
+{
+	data = inverseKinematicMatrices[1];
 }
 
 void Mesh::MakeHierchical(std::vector<glm::mat4>& frame, const int frameSize)
@@ -976,19 +1006,20 @@ void Mesh::MakeHierchical(std::vector<glm::mat4>& frame, const int frameSize)
 	}
 }
 
-void Mesh::CalculateInverseKinematics(std::vector<glm::mat4>& frame, const int frameSize, const glm::vec3 targetPositionInModelSpace, const glm::vec3 startPosition)
+bool Mesh::CalculateInverseKinematics(std::vector<glm::mat4>& frame, const int frameSize, const glm::vec3 targetPositionInModelSpace, const glm::vec3 startPosition)
 {
 	std::vector<glm::mat4> hierchicalFrame(frame);
 	MakeHierchical(hierchicalFrame, frameSize);
 
-	constexpr float targetAccuracyThreshold = 0.01f;
-	constexpr float movementDetectionThreshold = 0.01f;
+	constexpr float targetAccuracyThreshold = 0.1f;
+	constexpr float movementDetectionThreshold = 0.1f;
 	const size_t manipulatorSize = manipulator.size();
 
 	// let asume the current position is the first keyframes of the first animation.
 	glm::vec3 previousEndEffectorPosition;
 	glm::vec3 endEffectorPosition(startPosition);
 	bool isEEpointedTarget = false;
+	float movement = 0.f;
 	int i = 0;
 	do
 	{
@@ -1002,20 +1033,20 @@ void Mesh::CalculateInverseKinematics(std::vector<glm::mat4>& frame, const int f
 			const glm::vec3 endEffectorVector = glm::normalize(glm::vec3(endEffectorPosition.x - joint.x, endEffectorPosition.y - joint.y, endEffectorPosition.z - joint.z));
 
 			// Get rotation variables
-			
 			float angleBetweenTargetAndEE = acosf(glm::dot(endEffectorVector, targetVector));
-			const float pi = glm::pi<float>();
-			if (angleBetweenTargetAndEE >= pi)
-			{
-				std::cout << "Over!" << std::endl;
-			}
 			glm::vec3 rotationAxis = glm::cross(endEffectorVector, targetVector);
 
 
 			// Rotate lk by R_vk(ak) hierarchically
 			if (angleBetweenTargetAndEE != 0.f)
 			{
+				// Real code
 				glm::mat4 rotationMatrix = glm::rotate(angleBetweenTargetAndEE, rotationAxis);
+
+				glm::vec3 eularAngles = ExportEulerAngleData(rotationMatrix);
+				ClampAngles(eularAngles, manipulatorIndex);
+				rotationMatrix = glm::rotate(eularAngles.x, glm::vec3(1.f, 0.f, 0.f)) * glm::rotate(eularAngles.y, glm::vec3(0.f, 1.f, 0.f)) * glm::rotate(eularAngles.z, glm::vec3(0.f, 0.f, 1.f));
+
 				frame[manipulator[manipulatorIndex]] = frame[manipulator[manipulatorIndex]] * rotationMatrix;
 			}
 			hierchicalFrame = frame;
@@ -1026,7 +1057,6 @@ void Mesh::CalculateInverseKinematics(std::vector<glm::mat4>& frame, const int f
 			endEffectorPosition.y = tmp.y;
 			endEffectorPosition.z = tmp.z;
 
-
 			const glm::vec3 newEndEffectorVector = glm::normalize(glm::vec3(endEffectorPosition.x - joint.x, endEffectorPosition.y - joint.y, endEffectorPosition.z - joint.z));
 			// If current EE indicates target,
 			if (acosf(glm::dot(newEndEffectorVector, targetVector)) < targetAccuracyThreshold)
@@ -1035,5 +1065,79 @@ void Mesh::CalculateInverseKinematics(std::vector<glm::mat4>& frame, const int f
 				break;
 			}
 		}
-	} while (glm::length(endEffectorPosition - previousEndEffectorPosition) > movementDetectionThreshold && !isEEpointedTarget);
+		if (i >= 50)
+		{
+			return false;
+		}
+		movement = glm::length(endEffectorPosition - previousEndEffectorPosition);
+	} while (movement > movementDetectionThreshold && !isEEpointedTarget);
+
+	return true;
+}
+
+glm::vec3 Mesh::ExportEulerAngleData(glm::mat4 rotationMatrix)
+{
+	const static float pi = glm::pi<float>();
+	float xAngle, yAngle, zAngle;
+	float sinY = rotationMatrix[2][0];
+	if (sinY  < 1.f && sinY  > -1.f)
+	{
+		float yCandidate0 = -asinf(sinY);
+		float yCandidate1 = pi - yCandidate0;
+
+		// Select smaller angle
+		if (abs(yCandidate0) < abs(yCandidate1))
+		{
+			yAngle = yCandidate0;
+		}
+		else
+		{
+			yAngle = yCandidate1;
+		}
+
+		const float cosY0 = cosf(yAngle);
+		xAngle = atan2f(rotationMatrix[2][1] / cosY0, rotationMatrix[2][2] / cosY0);
+
+		zAngle = atan2f(rotationMatrix[1][0] / cosY0, rotationMatrix[0][0] / cosY0);
+
+	}
+	else
+	{
+		zAngle = 0.f;
+
+		if (sinY <= -1.f)
+		{
+			yAngle = pi / 2.f;
+			xAngle = zAngle + atan2f(rotationMatrix[0][1], rotationMatrix[0][2]);
+		}
+		else
+		{
+			yAngle = -pi / 2.f;
+			xAngle = -zAngle + atan2f(-rotationMatrix[0][1], -rotationMatrix[0][2]);
+		}
+	}
+	return glm::vec3(xAngle, yAngle, zAngle);
+}
+
+void Mesh::ClampAngles(glm::vec3& eularAngles, size_t manipulatorIndex)
+{
+	// Clamp angles
+	for (int i = 0; i < 3; i++)
+	{
+		if (eularAngles[i] < eularAngleConstraints[manipulatorIndex].first[i])
+		{
+			eularAngles[i] = eularAngleConstraints[manipulatorIndex].first[i];
+		}
+		else if (eularAngles[i] > eularAngleConstraints[manipulatorIndex].second[i])
+		{
+			eularAngles[i] = eularAngleConstraints[manipulatorIndex].second[i];
+		}
+	}
+
+	// Update constaints
+	for (int i = 0; i < 3; i++)
+	{
+		eularAngleConstraints[manipulatorIndex].first[i] -= eularAngles[i];
+		eularAngleConstraints[manipulatorIndex].second[i] -= eularAngles[i];
+	}
 }

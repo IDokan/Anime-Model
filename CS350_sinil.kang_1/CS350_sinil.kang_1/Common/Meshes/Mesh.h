@@ -111,6 +111,8 @@ public:
     void GetInverseKinematicAnimationTransform(std::vector<glm::mat4>& transform);
     void InitManipulator(size_t endEffector);
     glm::vec3 GetTest();
+    void GetInit(std::vector<glm::mat4>& data);
+    void GetFirst(std::vector<glm::mat4>& data);
 
 private:
     // Models
@@ -132,9 +134,13 @@ private:
     
     // Inverse kinematics
     void MakeHierchical(std::vector<glm::mat4>& frame, const int frameSize);
-    void CalculateInverseKinematics(std::vector<glm::mat4>& frame, const int frameSize, const glm::vec3 targetPositionInModelSpace, const glm::vec3 startPosition);
+    bool CalculateInverseKinematics(std::vector<glm::mat4>& frame, const int frameSize, const glm::vec3 targetPositionInModelSpace, const glm::vec3 startPosition);
+    glm::vec3 ExportEulerAngleData(glm::mat4 rotationMatrix);
+    void ClampAngles(glm::vec3& eularAngles, size_t manipulatorIndex);
     std::vector<std::vector<glm::mat4>> inverseKinematicMatrices;
     std::vector<size_t> manipulator;
+    std::vector<std::pair<glm::vec3, glm::vec3>> initEularAngleConstraints;
+    std::vector<std::pair<glm::vec3, glm::vec3>> eularAngleConstraints;
     glm::vec3 test;
     int interpolatedPositionCount;
 

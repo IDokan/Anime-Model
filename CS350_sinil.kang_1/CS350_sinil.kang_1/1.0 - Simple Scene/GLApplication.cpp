@@ -88,7 +88,6 @@ namespace WindowCallbackFunctions
 
     void MousePositionCallback(GLFWwindow* _window, double xPos, double yPos)
     {
-
         glm::ivec2 size;
         glfwGetWindowSize(_window, &size.x, &size.y);
         input.SetRawMousePos((static_cast<float>(xPos) * 2.f / size.x) - 1.f, 1.f - (static_cast<float>(yPos) * 2.f / size.y));
@@ -181,9 +180,9 @@ int main()
         glfwTerminate();
         return -1;
     }
-    glfwSetCursorPosCallback(guiWindow, WindowCallbackFunctions::GUIMousePositionCallback);
+    //glfwSetCursorPosCallback(guiWindow, WindowCallbackFunctions::GUIMousePositionCallback);
     glfwSetScrollCallback(guiWindow, WindowCallbackFunctions::GUIMouseWheelScroll);
-    glfwSetMouseButtonCallback(guiWindow, WindowCallbackFunctions::GUIMouseButtonCallback);
+    //glfwSetMouseButtonCallback(guiWindow, WindowCallbackFunctions::GUIMouseButtonCallback);
     glfwSetKeyCallback(guiWindow, WindowCallbackFunctions::KeyCallback);
     glfwSetCursorPosCallback(window, WindowCallbackFunctions::MousePositionCallback);
     glfwSetScrollCallback(window, WindowCallbackFunctions::MouseWheelScroll);
