@@ -896,10 +896,6 @@ void Mesh::CalculateInverseKinematics(glm::vec3 targetPositionInModelSpace, bool
 	float t = 1.f / interpolatedPositionCount;
 	for (int i = 1; i <= interpolatedPositionCount; i++)
 	{
-		//const float sinAngle = sinf(angleBetween);
-		//interpolatedPositions[i] = sinf((1.f - (t * i)) * angleBetween) / sinAngle * currentPositionV3 +
-		//	sinf(t * i * angleBetween) / sinAngle * targetPositionInModelSpace
-		//	;
 		interpolatedPositions[i] = (1.f - (t * i)) * currentPositionV3 + (t * i) * targetPositionInModelSpace;
 	}
 
@@ -908,18 +904,9 @@ void Mesh::CalculateInverseKinematics(glm::vec3 targetPositionInModelSpace, bool
 	for (int i = 1; i <= interpolatedPositionCount; i++)
 	{
 		glm::vec3 resultPosition;
-		int trial = 0;
-		auto tmp = eularAngleConstraints;
-		do
-		{
-			eularAngleConstraints = tmp;
-			trial++;
-			// Initialize with non hierarchical animation data
-			inverseKinematicMatrices[i] = (inverseKinematicMatrices[i - 1]);
-			tmp = eularAngleConstraints;
-			resultPosition = CalculateInverseKinematics(inverseKinematicMatrices[i], frameSize, interpolatedPositions[i], interpolatedPositions[i - 1], enforced);
-		} while (glm::length(resultPosition - interpolatedPositions[i]) > 0.1f && trial < 10);
-		interpolatedPositions[i] = resultPosition;
+		// Initialize with non hierarchical animation data
+		inverseKinematicMatrices[i] = (inverseKinematicMatrices[i - 1]);
+		interpolatedPositions[i] = CalculateInverseKinematics(inverseKinematicMatrices[i], frameSize, interpolatedPositions[i], interpolatedPositions[i - 1], enforced);
 	}
 	test = interpolatedPositions[interpolatedPositionCount];
 
@@ -962,21 +949,16 @@ void Mesh::InitManipulator(size_t endEffector)
 {
 	manipulator.clear();
 	eularAngleConstraints.clear();
-	//do
-	//{
-	//	manipulator.push_back(endEffector);
-	//	endEffector = skeleton[endEffector].parentID;
-	//} while (endEffector != 0);
 
 	const static float pi = glm::pi<float>();
 	manipulator.push_back(6);
 	eularAngleConstraints.push_back(std::pair(glm::vec3(0.f, -pi / 8.f, -pi / 8.f), glm::vec3(pi / 2.f, pi / 8.f, pi / 8.f)));
+	manipulator.push_back(29);
+	eularAngleConstraints.push_back(std::pair(glm::vec3(-pi / 4.f, 0.f, -pi / 4.f), glm::vec3(pi / 8.f, 0.f, pi / 4.f)));
 	manipulator.push_back(28);
 	eularAngleConstraints.push_back(std::pair(glm::vec3(-pi / 2.f, -pi / 2.f, -pi / 4.f), glm::vec3(2.5f * pi / 8.f, pi / 4.f, 0.f)));
 	manipulator.push_back(26);
 	eularAngleConstraints.push_back(std::pair(glm::vec3(-pi / 4.f, 0.f, -pi / 8.f), glm::vec3(pi / 4.f, 0.f, pi / 2.f)));
-	manipulator.push_back(29);
-	eularAngleConstraints.push_back(std::pair(glm::vec3(-pi / 4.f, 0.f, -pi / 4.f), glm::vec3(pi / 8.f, 0.f, pi / 4.f)));
 	manipulator.push_back(25);
 	eularAngleConstraints.push_back(std::pair(glm::vec3(-pi / 16.f, 0.f, 0.f), glm::vec3(pi / 16.f, 0.f, pi / 4.f)));
 
@@ -1017,8 +999,8 @@ glm::vec3 Mesh::CalculateInverseKinematics(std::vector<glm::mat4>& frame, const 
 	std::vector<glm::mat4> hierchicalFrame(frame);
 	MakeHierchical(hierchicalFrame, frameSize);
 
-	constexpr float targetAccuracyThreshold = 0.1f;
-	constexpr float movementDetectionThreshold = 0.1f;
+	constexpr float targetAccuracyThreshold = 0.05f;
+	constexpr float movementDetectionThreshold = 0.05f;
 	const size_t manipulatorSize = manipulator.size();
 
 	// let asume the current position is the first keyframes of the first animation.
@@ -1044,9 +1026,8 @@ glm::vec3 Mesh::CalculateInverseKinematics(std::vector<glm::mat4>& frame, const 
 
 
 			// Rotate lk by R_vk(ak) hierarchically
-			if (angleBetweenTargetAndEE != 0.f)
+			if (angleBetweenTargetAndEE > std::numeric_limits<float>::epsilon() || angleBetweenTargetAndEE < -std::numeric_limits<float>::epsilon())
 			{
-				// Real code
 				glm::mat4 rotationMatrix = glm::rotate(angleBetweenTargetAndEE, rotationAxis);
 
 				if (enforced)
@@ -1069,14 +1050,13 @@ glm::vec3 Mesh::CalculateInverseKinematics(std::vector<glm::mat4>& frame, const 
 			const glm::vec3 newEndEffectorVector = glm::normalize(glm::vec3(endEffectorPosition.x - joint.x, endEffectorPosition.y - joint.y, endEffectorPosition.z - joint.z));
 			// If current EE indicates target,
 			if (glm::length(endEffectorPosition - targetPositionInModelSpace) < targetAccuracyThreshold)
-				//if (acosf(glm::dot(newEndEffectorVector, targetVector)) < targetAccuracyThreshold)
 			{
 				isEEpointedTarget = true;
 				break;
 			}
 		}
 		movement = glm::length(endEffectorPosition - previousEndEffectorPosition);
-	} while (movement > movementDetectionThreshold && !isEEpointedTarget && i <= 10);
+	} while (movement > movementDetectionThreshold && !isEEpointedTarget && i <= 800);
 
 	return endEffectorPosition;
 }

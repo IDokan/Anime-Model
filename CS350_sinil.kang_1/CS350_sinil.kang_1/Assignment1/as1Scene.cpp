@@ -42,7 +42,7 @@ AS1Scene::AS1Scene(int width, int height)
 	:Scene(width, height),
 	angleOfRotate(0), showSkeleton(false),
 	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f),
-	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(true), velocity(0.f), playInverseKinematic(false), enforcedJointConstraints(false), interpolatedPositionCount(4), startPosition(), ballPosition()
+	animationMat4BlockNames(nullptr), animationMat4BlockNameSize(-1), timer(0.f), playAnimation(true), velocity(0.f), playInverseKinematic(false), enforcedJointConstraints(false), interpolatedPositionCount(4), ballHeight(2.f), startPosition(), ballPosition()
 {
 	sphereMesh = new Mesh();
 	orbitMesh = new Mesh();
@@ -50,7 +50,6 @@ AS1Scene::AS1Scene(int width, int height)
 	centerMesh = new Mesh(true);
 
 	centerMatrix = glm::mat4(1.f);
-	// modelMatrix = glm::mat4(1.f);
 
 	normalMesh = new LineMesh();
 	faceNormalMesh = new LineMesh();
@@ -84,7 +83,7 @@ AS1Scene::AS1Scene(int width, int height)
 	startPosition = glm::vec3(8.f, -1.9f, -2.f);
 	ballPosition = glm::vec3(-0.8f, -2.f, 0.5f);
 	tempBallPosition = ballPosition;
-	inverseKinematicPosition = tempBallPosition + glm::vec3(0.f, 2.3f, 0.f) + (normalize(tempBallPosition - startPosition) * 1.75f);
+	inverseKinematicPosition = tempBallPosition + glm::vec3(0.f, ballHeight, 0.f) + (normalize(tempBallPosition - startPosition) * 2.f);
 }
 
 AS1Scene::~AS1Scene()
@@ -162,8 +161,6 @@ int AS1Scene::preRender(float dt)
 
 				const auto result = glm::inverse(centerMatrix) * glm::vec4(inverseKinematicPosition.x, inverseKinematicPosition.y, inverseKinematicPosition.z, 1.f);
 				centerMesh->CalculateInverseKinematics(glm::vec3(result.x, result.y, result.z), enforcedJointConstraints, interpolatedPositionCount);
-
-				//centerMesh->CalculateInverseKinematics(glm::vec3(-0.309540778, -1.74187970, 1.81932592));
 			}
 		}
 	}
@@ -204,7 +201,7 @@ int AS1Scene::preRender(float dt)
 		tempBallPosition.x = ballPos.x;
 		tempBallPosition.y = ballPos.y;
 		tempBallPosition.z = ballPos.z;
-		inverseKinematicPosition = tempBallPosition + glm::vec3(0.f, 2.f, 0.f) + (normalize(tempBallPosition - position) * 2.f);
+		inverseKinematicPosition = tempBallPosition + glm::vec3(0.f, ballHeight, 0.f) + (normalize(tempBallPosition - position) * 2.f);
 	}
 	else if (mousePressedPreviousFrame)
 	{
@@ -272,7 +269,7 @@ int AS1Scene::Render(float dt)
 	DrawModelAndAnimation(centerMesh, centerObjMesh, skeletonLines, cameraP, animationMat4BlockNames, centerMatrix, dt, playInverseKinematic);
 
 	spheres->PrepareDrawing();
-	glm::mat4 sphereMatrix = glm::translate(inverseKinematicPosition) * glm::scale(glm::vec3(0.1f, 0.1f, 0.1f)) * sphereMesh->calcAdjustBoundingBoxMatrix();
+	glm::mat4 sphereMatrix = glm::translate(tempBallPosition + glm::vec3(0.f, ballHeight, 0.f) + (normalize(tempBallPosition - startPosition) * 2.f)) * glm::scale(glm::vec3(0.25f, 0.25f, 0.25f)) * sphereMesh->calcAdjustBoundingBoxMatrix();
 	glm::vec3 white(1.f, 1.f, 1.f);
 	spheres->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
 	spheres->SendUniformFloatMatrix4("objToWorld", &sphereMatrix[0][0]);
@@ -282,8 +279,7 @@ int AS1Scene::Render(float dt)
 
 	const unsigned int EEIndex = 14;
 	Vqs toEE = centerMesh->GetAnimationTransform(EEIndex);
-	//glm::mat4 objToEEToWorld = glm::translate(tempBallPosition);
-	glm::mat4 objToEEToWorld = centerMatrix * glm::translate(centerMesh->GetTest());
+	glm::mat4 objToEEToWorld = glm::translate(tempBallPosition) * glm::scale(glm::vec3(0.15f, 0.15f, 0.15f)) * sphereMesh->calcAdjustBoundingBoxMatrix();
 
 	glm::vec3 EEcolor(0.f, 1.f, 0.f);
 	spheres->PrepareDrawing();
@@ -726,7 +722,7 @@ void AS1Scene::AddMembersToGUI()
 	MyImGUI::SetNormalDisplayReferences(&showSkeleton);
 	MyImGUI::SetAnimationReferences(&playAnimation, &timer, centerMesh->GetAnimationDuration());
 	MyImGUI::SetDisplayReferences(&velocity);
-	MyImGUI::SetInverseKienematicReferences(&enforcedJointConstraints, &interpolatedPositionCount);
+	MyImGUI::SetInverseKienematicReferences(&enforcedJointConstraints, &interpolatedPositionCount, &ballHeight);
 }
 
 void AS1Scene::DrawVertexNormals()
