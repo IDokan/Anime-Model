@@ -71,6 +71,11 @@ void MeshGenerator::GenerateOrbitMesh(Mesh& mesh, const float radius, const int 
 	}
 }
 
+void MeshGenerator::GenerateCubeMesh(Mesh& mesh, const float length, const int sectionCount)
+{
+	// @@ TODO:: Implement it.
+}
+
 void MeshGenerator::AddIndices(Mesh& mesh, const int sectionCount)
 {
 	const int beginVertexIndex = 0;

@@ -20,6 +20,7 @@ public:
 
 	// Generate orbit on XY-plane
 	static void GenerateOrbitMesh(Mesh& mesh, const float radius, const int sectionCount);
+	static void GenerateCubeMesh(Mesh& mesh, const float length, const int sectionCount);
 private:
 	static void AddIndices(Mesh& mesh, const int sectionCount);
 };

@@ -60,33 +60,9 @@ private:
 	void InitGraphics();
 
 	// @@ Path functions
-	void InitPath();
-	void InitControlPoints();
-	void DrawPath();
-	void DrawControlPoints();
-	glm::vec3 BezierCurve(float u);
 	void GetPreviousAndNextIndices(int i, int size, int& previous, int& next);
 
-	std::vector<glm::vec3> path;
-	LineMesh* pathLine;
 	// @@ End of path
-
-	/// @@ Arc table functions
-	void BuildTable();
-	// Give s to obtain u
-	float InverseArcLength(float s);
-	std::map<float, float> arcLengthTable;
-
-	/// @@ Distance - time functions
-	float DistanceByTime(float t);
-	float VelocityByTime(float t);
-	float EaseIn(float t, float maxT);
-	float DerivativeEaseIn(float t, float maxT);
-	float Linear(float t, float t1);
-	float DerivativeLinear();
-	float EaseOut(float t, float minT, float maxT, float t1);
-	float DerivativeEaseOut(float t, float minT, float maxT);
-	/// </summary>
 
 	void AddMembersToGUI();
 
@@ -105,7 +81,6 @@ private:
 	void CreateAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSizeRef, const size_t size);
 	void DestroyAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSizeRef);
 
-	void DrawModelAndAnimation(Mesh* mesh, BoneObjectMesh* objMesh, LineMesh* skeleton, Point& p, GLchar**& blockNames, glm::mat4& matrix, float dt, bool playInverseKinematic = false);
 private:
 	Mesh* sphereMesh;
 	Mesh* orbitMesh;
@@ -177,26 +152,7 @@ private:
 
 	MyObjReader* myReader;
 
-	GLchar** animationMat4BlockNames;
-	GLsizei animationMat4BlockNameSize;
-
 	float timer;
-	bool playAnimation;
-	float velocity;
-	bool playInverseKinematic;
-	bool enforcedJointConstraints;
-	int interpolatedPositionCount;
-	float ballHeight;
-
-	std::vector<glm::vec3> controlPoints;
-	std::vector<std::pair<glm::vec3, glm::vec3>> interpolatedPointsForCurve;
-
-	glm::vec3 startPosition;
-	// Display position when players pressed right mouse button
-	glm::vec3 tempBallPosition;
-	// Ball position to calculate
-	glm::vec3 ballPosition;
-	glm::vec3 inverseKinematicPosition;
 };
 
 #endif // AS1_SCENE_H
