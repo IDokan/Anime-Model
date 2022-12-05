@@ -26,6 +26,8 @@ End Header --------------------------------------------------------*/
 #include <../Common/Cameras/Affine.h>
 #include <../Common/Input.h>
 
+#include <../Common/Meshes/Structs.h>
+
 // include ImGUI
 #include <../myGUI/myImGUI.h>
 
@@ -90,12 +92,8 @@ int AS1Scene::Init()
 
 	myReader->ReadObjFile("../Common/Meshes/models/quad.obj", floorMesh, true);
 
-
-
-
 	//MeshGenerator::GenerateCubeMesh(*centerMesh, 10.f, 5);
 	myReader->ReadObjFile("../Common/Meshes/models/cube.obj", centerMesh, true);
-
 	AddMembersToGUI();
 
 	LoadAllShaders();
@@ -138,7 +136,7 @@ int AS1Scene::preRender(float dt)
 	}
 	worldToNDC = glm::transpose(worldToNDC);
 
-
+	UpdatePhysics();
 
 	glClearColor(clearColor.x, clearColor.y, clearColor.z, 1.f);
 
@@ -238,7 +236,8 @@ void AS1Scene::CleanUp()
 	delete spheres;
 	delete sphereOrbit;
 	delete orbitMesh;
-
+	
+	delete centerPhysics;
 	delete centerMesh;
 
 	delete floorObjMesh;
@@ -279,8 +278,10 @@ void AS1Scene::InitGraphics()
 		floorMesh->getIndexBufferSize(), floorMesh->getIndexBuffer());
 
 	centerObjMesh->SetShader(programID);
+	// @@ TODO: Figure out that may I update obj mesh everytime?
 	centerObjMesh->Init(centerMesh->getVertexCount(), centerMesh->getVertexBuffer(), centerMesh->getVertexNormals(), centerMesh->getVertexUVs(),
 		centerMesh->GetBoneIDs(), centerMesh->GetBoneWeights(), centerMesh->getIndexBufferSize(), centerMesh->getIndexBuffer());
+	centerPhysics = new Physics(centerMesh);
 
 	// normal inits
 	normalMesh->SetShader(normalDisplayProgramID);
@@ -516,4 +517,15 @@ void AS1Scene::DestroyAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSize
 		delete[] names[i];
 	}
 	delete[] names;
+}
+
+void AS1Scene::UpdatePhysics()
+{
+	// Force, torque
+	glm::vec3 force;
+	glm::vec3 torque;
+	
+	// 
+	//centerPhysics
+
 }

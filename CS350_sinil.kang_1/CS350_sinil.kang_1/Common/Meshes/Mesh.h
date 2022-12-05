@@ -28,6 +28,7 @@ typedef float GLfloat;
 typedef unsigned int GLuint;
 typedef unsigned char GLboolean;
 class FileObject;
+class Physics;
 
 class Mesh
 {
@@ -39,6 +40,7 @@ public:
         CUBE_MAPPED_UV
     };
 public:
+    friend class Physics;
     friend class OBJReader;
     friend class MyObjReader;
     friend class MeshGenerator;
@@ -56,6 +58,8 @@ public:
 
     GLubyte* GetBoneIDs();
     GLfloat* GetBoneWeights();
+
+    std::vector<float>& getMass();
 
     unsigned int getVertexBufferSize();
     unsigned int getVertexCount();
@@ -120,6 +124,7 @@ private:
     std::vector<GLuint>       vertexIndices;
     std::vector<glm::vec2>    vertexUVs;
     std::vector<glm::vec3>    vertexNormals, vertexNormalDisplay, faceNormalDisplay;
+    std::vector<float> mass;
 
 private:
     // Skeletons

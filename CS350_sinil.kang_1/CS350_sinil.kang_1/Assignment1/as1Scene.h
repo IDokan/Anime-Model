@@ -37,6 +37,7 @@ class ObjectMesh;
 class Model;
 class AssimpShader;
 class BoneObjectMesh;
+class Physics;
 
 class AS1Scene : public Scene
 {
@@ -80,6 +81,8 @@ private:
 
 	void CreateAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSizeRef, const size_t size);
 	void DestroyAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSizeRef);
+
+	void UpdatePhysics();
 
 private:
 	Mesh* sphereMesh;
@@ -153,6 +156,8 @@ private:
 	MyObjReader* myReader;
 
 	float timer;
+
+	Physics* centerPhysics;
 };
 
 #endif // AS1_SCENE_H

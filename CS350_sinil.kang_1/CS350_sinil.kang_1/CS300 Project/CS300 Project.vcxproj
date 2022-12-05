@@ -194,6 +194,7 @@ xcopy /y /d "..\ThirdParty\assimp\lib\*.dll" "$(TargetDir)"</Command>
     <ClCompile Include="..\Common\Meshes\MyMeshes\MyMesh.cpp" />
     <ClCompile Include="..\Common\Meshes\MyMeshes\ObjectMesh.cpp" />
     <ClCompile Include="..\Common\Meshes\MyObjReader.cpp" />
+    <ClCompile Include="..\Common\Meshes\Structs.cpp" />
     <ClCompile Include="..\Common\ppms\ppmReader.cpp" />
     <ClCompile Include="..\Common\Scene.cpp" />
     <ClCompile Include="..\Common\shader.cpp" />
@@ -229,6 +230,7 @@ xcopy /y /d "..\ThirdParty\assimp\lib\*.dll" "$(TargetDir)"</Command>
     <ClInclude Include="..\Common\Meshes\MyMeshes\MyMesh.h" />
     <ClInclude Include="..\Common\Meshes\MyMeshes\ObjectMesh.h" />
     <ClInclude Include="..\Common\Meshes\MyObjReader.h" />
+    <ClInclude Include="..\Common\Meshes\Structs.h" />
     <ClInclude Include="..\Common\ppms\ppmReader.h" />
     <ClInclude Include="..\Common\Scene.h" />
     <ClInclude Include="..\Common\shader.hpp" />

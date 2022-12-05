@@ -98,6 +98,11 @@ GLfloat* Mesh::GetBoneWeights()
 	return reinterpret_cast<GLfloat*>(boneWeights.data());
 }
 
+std::vector<float>& Mesh::getMass()
+{
+	return mass;
+}
+
 GLuint* Mesh::getIndexBuffer()
 {
 	return vertexIndices.data();
@@ -139,6 +144,11 @@ unsigned int Mesh::getFaceNormalCount()
 unsigned int Mesh::GetBoneCountForDisplay()
 {
 	return static_cast<unsigned int>(initialBones.size());
+}
+
+unsigned int Mesh::getMassCount()
+{
+	return static_cast<unsigned int>(mass.size());
 }
 
 const std::vector<Bone>& Mesh::GetSkeleton()
