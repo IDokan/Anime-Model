@@ -28,7 +28,7 @@ typedef float GLfloat;
 typedef unsigned int GLuint;
 typedef unsigned char GLboolean;
 class FileObject;
-class Physics;
+struct Physics;
 
 class Mesh
 {
@@ -40,7 +40,7 @@ public:
         CUBE_MAPPED_UV
     };
 public:
-    friend class Physics;
+    friend struct Physics;
     friend class OBJReader;
     friend class MyObjReader;
     friend class MeshGenerator;
@@ -67,6 +67,7 @@ public:
     unsigned int getFaceNormalCount();
     unsigned int GetBoneCountForDisplay();
     const std::vector<Bone>& GetSkeleton();
+    void SetVertex(const size_t i, const glm::vec3 newVertex);
 
     // Get vertex index buffer
     GLuint *getIndexBuffer();

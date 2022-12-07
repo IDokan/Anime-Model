@@ -71,9 +71,126 @@ void MeshGenerator::GenerateOrbitMesh(Mesh& mesh, const float radius, const int 
 	}
 }
 
-void MeshGenerator::GenerateCubeMesh(Mesh& mesh, const float length, const int sectionCount)
+void MeshGenerator::GenerateCubeMesh(Mesh& mesh, const float length, const unsigned int sectionCount)
 {
-	// @@ TODO:: Implement it.
+	mesh.vertexBuffer.clear();
+
+	float edgeLength = length / sectionCount;
+
+	glm::vec3 vertex = glm::vec3(-length / 2.f);
+	const glm::vec3 startPosition = vertex;
+
+	for (unsigned int depthIndex = 0; depthIndex <= sectionCount; depthIndex++)
+	{
+		for (unsigned int heightIndex = 0; heightIndex <= sectionCount; heightIndex++)
+		{
+			// X-axis vertices
+			for (unsigned int widthIndex = 0; widthIndex <= sectionCount; widthIndex++)
+			{
+				mesh.vertexBuffer.push_back(vertex);
+				vertex.x += edgeLength;
+			}
+			vertex.x = startPosition.x;
+			vertex.y += edgeLength;
+		}
+
+		vertex.y = startPosition.y;
+		vertex.z += edgeLength;
+	}
+
+	mesh.vertexNormals = mesh.vertexBuffer;
+
+	const unsigned int vertexCount = sectionCount + 1;
+	const unsigned int vertexCountSquare = vertexCount * vertexCount;
+	// Bottom face
+	for (unsigned int i = 0; i < sectionCount; i++)
+	{
+		for (unsigned int j = 0; j < sectionCount; j++)
+		{
+			mesh.vertexIndices.push_back(i + j * vertexCount);
+			mesh.vertexIndices.push_back((i + 1) + j * vertexCount);
+			mesh.vertexIndices.push_back(i + (j + 1) * vertexCount);
+
+			mesh.vertexIndices.push_back((i + 1) + j * vertexCount);
+			mesh.vertexIndices.push_back((i + 1) + (j + 1) * vertexCount);
+			mesh.vertexIndices.push_back(i + (j + 1) * vertexCount);
+		}
+	}
+
+	// Up face
+	for (unsigned int i = 0; i < sectionCount; i++)
+	{
+		for (unsigned int j = 0; j < sectionCount; j++)
+		{
+			mesh.vertexIndices.push_back((i + 1) + j * vertexCount + sectionCount * vertexCountSquare);
+			mesh.vertexIndices.push_back(i + j * vertexCount + sectionCount * vertexCountSquare);
+			mesh.vertexIndices.push_back(i + (j + 1) * vertexCount + sectionCount * vertexCountSquare);
+
+			mesh.vertexIndices.push_back((i + 1) + (j + 1) * vertexCount + sectionCount * vertexCountSquare);
+			mesh.vertexIndices.push_back((i + 1) + j * vertexCount + sectionCount * vertexCountSquare);
+			mesh.vertexIndices.push_back(i + (j + 1) * vertexCount + sectionCount * vertexCountSquare);
+		}
+	}
+
+	// right face
+	for (unsigned int z = 0; z < sectionCount; z++)
+	{
+		for (unsigned int j = 0; j < sectionCount; j++)
+		{
+			mesh.vertexIndices.push_back(sectionCount + j * vertexCount + z * vertexCountSquare);
+			mesh.vertexIndices.push_back(sectionCount + j * vertexCount + (z + 1) * vertexCountSquare);
+			mesh.vertexIndices.push_back(sectionCount + (j + 1) * vertexCount + (z + 1) * vertexCountSquare);
+
+			mesh.vertexIndices.push_back(sectionCount + (j + 1) * vertexCount + (z + 1) * vertexCountSquare);
+			mesh.vertexIndices.push_back(sectionCount + (j + 1) * vertexCount + z * vertexCountSquare);
+			mesh.vertexIndices.push_back(sectionCount + j * vertexCount + z * vertexCountSquare);
+		}
+	}
+
+	// left face
+	for (unsigned int z = 0; z < sectionCount; z++)
+	{
+		for (unsigned int j = 0; j < sectionCount; j++)
+		{
+			mesh.vertexIndices.push_back(j * vertexCount + z * vertexCountSquare);
+			mesh.vertexIndices.push_back((j + 1) * vertexCount + z * vertexCountSquare);
+			mesh.vertexIndices.push_back((j + 1) * vertexCount + (z + 1) * vertexCountSquare);
+
+			mesh.vertexIndices.push_back(j * vertexCount + z * vertexCountSquare);
+			mesh.vertexIndices.push_back((j + 1) * vertexCount + (z + 1) * vertexCountSquare);
+			mesh.vertexIndices.push_back(j * vertexCount + (z + 1) * vertexCountSquare);
+		}
+	}
+
+	// front face
+	for (unsigned int z = 0; z < sectionCount; z++)
+	{
+		for (unsigned int i = 0; i < sectionCount; i++)
+		{
+			mesh.vertexIndices.push_back((i + 1) + sectionCount * vertexCount + z * vertexCountSquare);
+			mesh.vertexIndices.push_back((i + 1) + sectionCount * vertexCount + (z + 1) * vertexCountSquare);
+			mesh.vertexIndices.push_back(i + sectionCount * vertexCount + (z + 1) * vertexCountSquare);
+
+			mesh.vertexIndices.push_back(i + sectionCount * vertexCount + (z + 1) * vertexCountSquare);
+			mesh.vertexIndices.push_back(i + sectionCount * vertexCount + z * vertexCountSquare);
+			mesh.vertexIndices.push_back((i + 1) + sectionCount * vertexCount + z * vertexCountSquare);
+		}
+	}
+
+	// back face
+	for (unsigned int z = 0; z < sectionCount; z++)
+	{
+		for (unsigned int i = 0; i < sectionCount; i++)
+		{
+			mesh.vertexIndices.push_back((i + 1) + z * vertexCountSquare);
+			mesh.vertexIndices.push_back(i + z * vertexCountSquare);
+			mesh.vertexIndices.push_back((i + 1) + (z + 1) * vertexCountSquare);
+
+			mesh.vertexIndices.push_back((i + 1) + (z + 1) * vertexCountSquare);
+			mesh.vertexIndices.push_back(i + z * vertexCountSquare);
+			mesh.vertexIndices.push_back(i + (z + 1) * vertexCountSquare);
+		}
+	}
 }
 
 void MeshGenerator::AddIndices(Mesh& mesh, const int sectionCount)

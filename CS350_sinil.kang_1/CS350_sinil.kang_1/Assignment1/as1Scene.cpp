@@ -13,6 +13,7 @@ End Header --------------------------------------------------------*/
 #define _CRT_SECURE_NO_WARNINGS
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <unordered_set>
 #include <../Assignment1/as1Scene.h>
 #include <../Common/Meshes/MyObjReader.h>
 #include <../Common/Meshes/Mesh.h>
@@ -43,7 +44,9 @@ End Header --------------------------------------------------------*/
 AS1Scene::AS1Scene(int width, int height)
 	:Scene(width, height),
 	angleOfRotate(0), showSkeleton(false),
-	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f), timer(0.f)
+	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f), timer(0.f),
+	dampingConstant(4.f), gravityConstant(0.5f), springConstant(4.f),
+	resetFlag(false), sectionCount(2)
 {
 	sphereMesh = new Mesh();
 	orbitMesh = new Mesh();
@@ -92,8 +95,8 @@ int AS1Scene::Init()
 
 	myReader->ReadObjFile("../Common/Meshes/models/quad.obj", floorMesh, true);
 
-	//MeshGenerator::GenerateCubeMesh(*centerMesh, 10.f, 5);
-	myReader->ReadObjFile("../Common/Meshes/models/cube.obj", centerMesh, true);
+	MeshGenerator::GenerateCubeMesh(*centerMesh, static_cast<float>(sectionCount), sectionCount);
+	// myReader->ReadObjFile("../Common/Meshes/models/cube.obj", centerMesh, true);
 	AddMembersToGUI();
 
 	LoadAllShaders();
@@ -136,7 +139,13 @@ int AS1Scene::preRender(float dt)
 	}
 	worldToNDC = glm::transpose(worldToNDC);
 
-	UpdatePhysics();
+	if (resetFlag == true)
+	{
+		centerPhysics = initPhysics;
+
+		resetFlag = false;
+	}
+	UpdatePhysics(dt);
 
 	glClearColor(clearColor.x, clearColor.y, clearColor.z, 1.f);
 
@@ -163,19 +172,19 @@ int AS1Scene::preRender(float dt)
 int AS1Scene::Render(float dt)
 {
 
-	floorObjMesh->SetShader(programID);
-	floorObjMesh->PrepareDrawing();
+	//floorObjMesh->SetShader(programID);
+	//floorObjMesh->PrepareDrawing();
 
-	floorObjMesh->SendUniformFloatMatrix4("objToWorld", &floorMatrix[0][0]);
-	floorObjMesh->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
+	//floorObjMesh->SendUniformFloatMatrix4("objToWorld", &floorMatrix[0][0]);
+	//floorObjMesh->SendUniformFloatMatrix4("worldToNDC", &worldToNDC[0][0]);
 	Point cameraP = camera.Eye();
-	glm::vec3 blue(0.f, 0.f, 1.f);
-	floorObjMesh->SendUniformFloat3("diffuseColor", &blue.x);
-	floorObjMesh->SendUniformFloat3("camera", &cameraP.x);
+	//glm::vec3 blue(0.f, 0.f, 1.f);
+	//floorObjMesh->SendUniformFloat3("diffuseColor", &blue.x);
+	//floorObjMesh->SendUniformFloat3("camera", &cameraP.x);
 
 
 
-	floorObjMesh->Draw(floorMesh->getIndexBufferSize());
+	//floorObjMesh->Draw(floorMesh->getIndexBufferSize());
 
 	centerObjMesh->PrepareDrawing();
 
@@ -237,7 +246,6 @@ void AS1Scene::CleanUp()
 	delete sphereOrbit;
 	delete orbitMesh;
 	
-	delete centerPhysics;
 	delete centerMesh;
 
 	delete floorObjMesh;
@@ -279,9 +287,27 @@ void AS1Scene::InitGraphics()
 
 	centerObjMesh->SetShader(programID);
 	// @@ TODO: Figure out that may I update obj mesh everytime?
-	centerObjMesh->Init(centerMesh->getVertexCount(), centerMesh->getVertexBuffer(), centerMesh->getVertexNormals(), centerMesh->getVertexUVs(),
-		centerMesh->GetBoneIDs(), centerMesh->GetBoneWeights(), centerMesh->getIndexBufferSize(), centerMesh->getIndexBuffer());
-	centerPhysics = new Physics(centerMesh);
+	const unsigned int vertexCount = centerMesh->getVertexCount();
+	GLfloat* vertices = centerMesh->getVertexBuffer();
+	GLuint* indices = centerMesh->getIndexBuffer();
+	centerObjMesh->Init(vertexCount, vertices, centerMesh->getVertexNormals(), centerMesh->getVertexUVs(),
+		centerMesh->GetBoneIDs(), centerMesh->GetBoneWeights(), centerMesh->getIndexBufferSize(), indices);
+	
+	// Initialize physics
+	{
+		for (unsigned int i = 0; i < vertexCount; i++)
+		{
+			centerPhysics.push_back(Physics(glm::vec3(vertices[i * 3], vertices[i * 3 + 1], vertices[i * 3 + 2]), 3.f));
+		}
+
+		const unsigned int triangleCount = centerMesh->getTriangleCount();
+		//InitializeRelatedVertexIndexFocusOnFaces(vertexCount, triangleCount, indices);
+		InitializeRelatedVertexIndexFocusOnUserDefined(vertexCount);
+	
+		InitializeSpringLength();
+
+		initPhysics = centerPhysics;
+	}
 
 	// normal inits
 	normalMesh->SetShader(normalDisplayProgramID);
@@ -311,8 +337,7 @@ void AS1Scene::GetPreviousAndNextIndices(int i, int size, int& previous, int& ne
 
 void AS1Scene::AddMembersToGUI()
 {
-	MyImGUI::SetNormalDisplayReferences(&showSkeleton);
-	MyImGUI::SetAnimationReferences(&timer);
+	MyImGUI::SetRigidBodyReferences(&resetFlag, &gravityConstant, &springConstant, &dampingConstant);
 }
 
 void AS1Scene::DrawVertexNormals()
@@ -519,13 +544,127 @@ void AS1Scene::DestroyAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSize
 	delete[] names;
 }
 
-void AS1Scene::UpdatePhysics()
+void AS1Scene::UpdatePhysics(float dt)
 {
-	// Force, torque
-	glm::vec3 force;
-	glm::vec3 torque;
+	// Deformable - object
 	
-	// 
-	//centerPhysics
+	const size_t physicsSize = centerPhysics.size();
+	std::vector<glm::vec3> force(physicsSize);
+	for (size_t i = 0; i < physicsSize - 2; i++)
+	{
+		const std::vector<unsigned int>& subjectVertices = subjectVertexIndices[i];
+		
+		glm::vec3 mainCOM = centerPhysics[i].centerOfMass;
+		glm::vec3 mainVelocity = centerPhysics[i].linearVelocity;
 
+		const size_t subjectVertexSize = subjectVertices.size();
+		for (size_t subjectIndex = 0; subjectIndex < subjectVertexSize; ++subjectIndex)
+		{
+			glm::vec3 diffVector = mainCOM - centerPhysics[subjectVertices[subjectIndex]].centerOfMass;
+			const float length = glm::length(diffVector);
+			// spring force
+			force[i] += springConstant * diffVector / length * (initSpringLength[i][subjectIndex] - length);
+
+			//// Self collision
+			//if (length <= 0.01f)
+			//{
+			//	std::cout << length << std::endl;
+			//}
+
+			// damping force
+			force[i] += dampingConstant * (centerPhysics[subjectVertices[subjectIndex]].linearVelocity - mainVelocity);
+		}
+
+		// gravity force
+		force[i] += centerPhysics[i].totalMass * gravityConstant * glm::vec3(0.f, -1.f, 0.f);
+	}
+
+	// std::cout << "x: " << force[5].x << ", y: " << force[5].y << ", z: " << force[5].z << std::endl;
+
+	for (size_t i = 0; i < physicsSize; i++)
+	{
+		centerPhysics[i].UpdateByForce(dt, force[i]);
+		centerMesh->SetVertex(i, centerPhysics[i].centerOfMass);
+	}
+
+	centerObjMesh->Init(centerMesh->getVertexBufferSize(), centerMesh->getVertexBuffer(), centerMesh->getVertexNormals(), centerMesh->getVertexUVs(),
+		centerMesh->GetBoneIDs(), centerMesh->GetBoneWeights(), centerMesh->getIndexBufferSize(), centerMesh->getIndexBuffer());
+}
+
+void AS1Scene::InitializeRelatedVertexIndexFocusOnFaces(unsigned int vertexCount, unsigned int faceCount, unsigned int* indices)
+{
+	std::vector<std::unordered_set<unsigned int>> indexSetList(vertexCount);
+	for (unsigned int i = 0; i < faceCount; i++)
+	{
+		unsigned int id0 = indices[i * 3];
+		unsigned int id1 = indices[i * 3 + 1];
+		unsigned int id2 = indices[i * 3 + 2];
+
+		indexSetList[id0].insert(id1);
+		indexSetList[id0].insert(id2);
+		indexSetList[id1].insert(id0);
+		indexSetList[id1].insert(id2);
+		indexSetList[id2].insert(id0);
+		indexSetList[id2].insert(id1);
+	}
+
+	subjectVertexIndices.clear();
+	for (const std::unordered_set<unsigned int>& set : indexSetList)
+	{
+		subjectVertexIndices.push_back(std::vector<unsigned int>(set.begin(), set.end()));
+	}
+}
+
+void AS1Scene::InitializeRelatedVertexIndexFocusOnUserDefined(int vertexCount)
+{
+	subjectVertexIndices.clear();
+	subjectVertexIndices.resize(vertexCount);
+	const int vertexPerEdge = sectionCount + 1;
+	const int vertexPerEdgeSquared = vertexPerEdge * vertexPerEdge;
+	for (int i = 0; i < vertexCount; i++)
+	{
+		std::vector<int> candidates{ i - vertexPerEdge, i + vertexPerEdge, i - 1, i + 1, i + vertexPerEdgeSquared, i - vertexPerEdgeSquared,
+			i + 1 - vertexPerEdge + vertexPerEdgeSquared, i - 1 - vertexPerEdge + vertexPerEdgeSquared, i - 1 + vertexPerEdge + vertexPerEdgeSquared, i + 1 + vertexPerEdge + vertexPerEdgeSquared,
+			i + 1 - vertexPerEdge - vertexPerEdgeSquared, i - 1 - vertexPerEdge - vertexPerEdgeSquared, i - 1 + vertexPerEdge - vertexPerEdgeSquared, i + 1 + vertexPerEdge - vertexPerEdgeSquared };
+		//int back = i - vertexPerEdge;
+		//int front = i + vertexPerEdge;
+		//int left = i - 1;
+		//int right = i + 1;
+		//int top = i + vertexPerEdgeSquared;
+		//int bottom = i - vertexPerEdgeSquared;
+		//int TBR = i + 1 - vertexPerEdge + vertexPerEdgeSquared;
+		//int TBL = i - 1 - vertexPerEdge + vertexPerEdgeSquared;
+		//int TFL = i - 1 + vertexPerEdge + vertexPerEdgeSquared;
+		//int TFR = i + 1 + vertexPerEdge + vertexPerEdgeSquared;
+		//int BBR = i + 1 - vertexPerEdge - vertexPerEdgeSquared;
+		//int BBL = i - 1 - vertexPerEdge - vertexPerEdgeSquared;
+		//int BFL = i - 1 + vertexPerEdge - vertexPerEdgeSquared;
+		//int BFR = i + 1 + vertexPerEdge - vertexPerEdgeSquared;
+
+		for (int candidate : candidates)
+		{
+			if (candidate >= 0 && candidate < vertexCount)
+			{
+				subjectVertexIndices[i].push_back(candidate);
+			}
+		}
+	}
+}
+
+void AS1Scene::InitializeSpringLength()
+{
+	const size_t vertexSize = subjectVertexIndices.size();
+	initSpringLength.resize(vertexSize);
+
+	for (size_t vertexIndex = 0; vertexIndex < vertexSize; ++vertexIndex)
+	{
+		const size_t subjectSize = subjectVertexIndices[vertexIndex].size();
+		initSpringLength[vertexIndex].resize(subjectSize);
+		for (size_t subjectIndex = 0; subjectIndex < subjectSize; ++subjectIndex)
+		{
+			const glm::vec3 mainVertex = centerPhysics[vertexIndex].centerOfMass;
+			const glm::vec3 subjectVertex = centerPhysics[subjectVertexIndices[vertexIndex][subjectIndex]].centerOfMass;
+			initSpringLength[vertexIndex][subjectIndex] = glm::length(mainVertex - subjectVertex);
+		}
+	}
 }

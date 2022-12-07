@@ -37,7 +37,7 @@ class ObjectMesh;
 class Model;
 class AssimpShader;
 class BoneObjectMesh;
-class Physics;
+struct Physics;
 
 class AS1Scene : public Scene
 {
@@ -82,7 +82,7 @@ private:
 	void CreateAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSizeRef, const size_t size);
 	void DestroyAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSizeRef);
 
-	void UpdatePhysics();
+	void UpdatePhysics(float dt);
 
 private:
 	Mesh* sphereMesh;
@@ -157,7 +157,20 @@ private:
 
 	float timer;
 
-	Physics* centerPhysics;
+	std::vector<Physics> centerPhysics;
+	std::vector<Physics> initPhysics;
+	std::vector<std::vector<unsigned int>> subjectVertexIndices;
+	void InitializeRelatedVertexIndexFocusOnFaces(unsigned int vertexCount, unsigned int faceCount, unsigned int* indices);
+	void InitializeRelatedVertexIndexFocusOnUserDefined(int vertexCount);
+	float dampingConstant;
+	float gravityConstant;
+	float springConstant;
+	std::vector<std::vector<float>> initSpringLength;
+	void InitializeSpringLength();
+
+	bool resetFlag;
+
+	unsigned int sectionCount;
 };
 
 #endif // AS1_SCENE_H

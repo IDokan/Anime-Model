@@ -10,6 +10,7 @@ Project: sinil.kang_CS460
 Author: Sinil Kang = sinil.kang = Colleague ID: 0052782
 Creation date: 12/01/2021
 End Header --------------------------------------------------------*/
+#include <iostream>
 #include <../Common/Meshes/Structs.h>
 #include <../Common/Meshes/Mesh.h>
 
@@ -18,10 +19,10 @@ Physics::Physics(Mesh&& mesh)
 	linearVelocity(glm::vec3(0.f)), inertiaTensorInverse(glm::mat3(0.f)), inertiaTensorObj(glm::mat3(0.f)), angularVelocity(glm::vec3(0.f)), force(glm::vec3(0.f)), torque(glm::vec3(0.f)),
 	totalMass(0.f), vertices(mesh.vertexBuffer)
 {
-	const unsigned int vertexSize = vertices.size();
+	const size_t vertexSize = vertices.size();
 
 	masses = mesh.mass;
-	unsigned int massSize = masses.size();
+	size_t massSize = masses.size();
 
 
 	// Initialize masses if mass is invalid.
@@ -29,7 +30,7 @@ Physics::Physics(Mesh&& mesh)
 	{
 		massSize = vertexSize;
 		masses.resize(vertexSize);
-		for (unsigned int i = 0; i < vertexSize; i++)
+		for (size_t i = 0; i < vertexSize; i++)
 		{
 			centerOfMass += vertices[i];
 			masses[i] = 1.f;
@@ -41,7 +42,7 @@ Physics::Physics(Mesh&& mesh)
 	}
 	else
 	{
-		for (unsigned int i = 0; i < vertexSize; i++)
+		for (size_t i = 0; i < vertexSize; i++)
 		{
 			const float mass = masses[i];
 			centerOfMass += vertices[i] * mass;
@@ -51,7 +52,7 @@ Physics::Physics(Mesh&& mesh)
 	}
 
 	// Calculate inertiaTensor
-	for (unsigned int i = 0; i < vertexSize; i++)
+	for (size_t i = 0; i < vertexSize; i++)
 	{
 		glm::vec3 ri = (vertices[i] - centerOfMass);
 		const float mass = masses[i];
@@ -71,6 +72,21 @@ Physics::Physics(Mesh&& mesh)
 	inertiaTensorObj[2][1] = inertiaTensorObj[1][2];
 
 	inertiaTensorInverse = rotation * glm::inverse(inertiaTensorObj) * glm::transpose(rotation);
+}
+
+Physics::Physics(glm::vec3 vertex, float mass)
+	:centerOfMass(glm::vec3(0.f)), translation(glm::vec3(0.f)), rotation(glm::mat4(1.f)), linearMomentum(glm::vec3(0.f)), angularMomentum(glm::vec3(0.f)),
+	linearVelocity(glm::vec3(0.f)), inertiaTensorInverse(glm::mat3(0.f)), inertiaTensorObj(glm::mat3(0.f)), angularVelocity(glm::vec3(0.f)), force(glm::vec3(0.f)), torque(glm::vec3(0.f)),
+	totalMass(0.f), vertices()
+{
+	vertices.clear();
+	vertices.push_back(vertex);
+	masses.clear();
+	masses.push_back(mass);
+
+	// COM, totalMass
+	totalMass = mass;
+	centerOfMass = vertex;
 }
 
 Physics::~Physics()
@@ -135,6 +151,12 @@ Physics& Physics::operator=(Physics&& p)
 
 void Physics::UpdateByForce(float dt, glm::vec3 _force, glm::vec3 _torque)
 {
+	if (vertices.size() <= 1)
+	{
+		std::cout << "Use inappropriate Physics::Update call. Use Mesh Update on Point Mass Physics" << std::endl;
+		abort();
+		return;
+	}
 	force = _force;
 	torque = _torque;
 
@@ -175,6 +197,25 @@ void Physics::UpdateByForce(float dt, glm::vec3 _force, glm::vec3 _torque)
 	inertiaTensorObj[2][1] = inertiaTensorObj[1][2];
 
 	inertiaTensorInverse = rotation * glm::inverse(inertiaTensorObj) * glm::transpose(rotation);
+}
+
+void Physics::UpdateByForce(float dt, glm::vec3 _force)
+{
+	if (vertices.size() > 1)
+	{
+		std::cout << "Use inappropriate Physics::Update call. Use Point MassUpdate on Mesh Physics" << std::endl;
+		abort();
+		return;
+	}
+	force = _force;
+
+	linearMomentum += dt * force;
+
+	linearVelocity = linearMomentum / totalMass;
+
+	translation += dt * linearVelocity;
+
+	centerOfMass = centerOfMass + translation;
 }
 
 Change Physics::Derivative()

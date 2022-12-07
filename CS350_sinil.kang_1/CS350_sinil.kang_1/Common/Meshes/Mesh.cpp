@@ -146,14 +146,14 @@ unsigned int Mesh::GetBoneCountForDisplay()
 	return static_cast<unsigned int>(initialBones.size());
 }
 
-unsigned int Mesh::getMassCount()
-{
-	return static_cast<unsigned int>(mass.size());
-}
-
 const std::vector<Bone>& Mesh::GetSkeleton()
 {
 	return skeleton;
+}
+
+void Mesh::SetVertex(const size_t i, const glm::vec3 newVertex)
+{
+	vertexBuffer[i] = newVertex;
 }
 
 glm::vec3  Mesh::getModelScale()

@@ -35,7 +35,10 @@ public:
 struct Physics
 {
 public:
+	// Mesh ctor
 	Physics(Mesh&& mesh);
+	// Point Mass ctor
+	Physics(glm::vec3 vertex, float mass = 1.f);
 	~Physics();
 
 	Physics(const Physics& p);
@@ -43,15 +46,18 @@ public:
 	Physics& operator=(const Physics& p);
 	Physics& operator=(Physics&& p);
 
+	// Mesh Update
 	void UpdateByForce(float dt, glm::vec3 force, glm::vec3 torque);
+	// Point Mass Update
+	void UpdateByForce(float dt, glm::vec3 force);
 	Change Derivative();
+
 
 	glm::vec3 centerOfMass;
 	glm::vec3 translation;
 	glm::mat3 rotation;
 	glm::vec3 linearMomentum;
 	glm::vec3 angularMomentum;
-private:
 	glm::vec3 linearVelocity;
 	glm::mat3 inertiaTensorInverse;
 	glm::mat3 inertiaTensorObj;
@@ -60,9 +66,11 @@ private:
 	glm::vec3 force;
 	glm::vec3 torque;
 
+	float totalMass;
+private:
+
 
 private:
-	float totalMass;
 	std::vector<float> masses;
 	std::vector<glm::vec3> vertices;
 
