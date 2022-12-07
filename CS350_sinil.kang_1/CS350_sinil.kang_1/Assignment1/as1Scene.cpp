@@ -46,7 +46,7 @@ AS1Scene::AS1Scene(int width, int height)
 	angleOfRotate(0), showSkeleton(false),
 	oldX(0.f), oldY(0.f), cameraMovementOffset(0.004f), clearColor(0.4f, 0.4f, 0.4f), timer(0.f),
 	dampingConstant(4.f), gravityConstant(0.5f), springConstant(4.f),
-	resetFlag(false), sectionCount(2)
+	resetFlag(false), sectionCount(1)
 {
 	sphereMesh = new Mesh();
 	orbitMesh = new Mesh();
@@ -547,48 +547,78 @@ void AS1Scene::DestroyAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSize
 void AS1Scene::UpdatePhysics(float dt)
 {
 	// Deformable - object
+	std::vector<Physics> k1(centerPhysics), k2(centerPhysics), k3(centerPhysics);
 	
 	const size_t physicsSize = centerPhysics.size();
-	std::vector<glm::vec3> force(physicsSize);
-	for (size_t i = 0; i < physicsSize - 2; i++)
+	std::vector<glm::vec3> forceK1(physicsSize);
+	CalculateForce(forceK1, centerPhysics);
+	
+	for (size_t i = 0; i < physicsSize; i++)
 	{
-		const std::vector<unsigned int>& subjectVertices = subjectVertexIndices[i];
-		
-		glm::vec3 mainCOM = centerPhysics[i].centerOfMass;
-		glm::vec3 mainVelocity = centerPhysics[i].linearVelocity;
-
-		const size_t subjectVertexSize = subjectVertices.size();
-		for (size_t subjectIndex = 0; subjectIndex < subjectVertexSize; ++subjectIndex)
-		{
-			glm::vec3 diffVector = mainCOM - centerPhysics[subjectVertices[subjectIndex]].centerOfMass;
-			const float length = glm::length(diffVector);
-			// spring force
-			force[i] += springConstant * diffVector / length * (initSpringLength[i][subjectIndex] - length);
-
-			//// Self collision
-			//if (length <= 0.01f)
-			//{
-			//	std::cout << length << std::endl;
-			//}
-
-			// damping force
-			force[i] += dampingConstant * (centerPhysics[subjectVertices[subjectIndex]].linearVelocity - mainVelocity);
-		}
-
-		// gravity force
-		force[i] += centerPhysics[i].totalMass * gravityConstant * glm::vec3(0.f, -1.f, 0.f);
+		k1[i].UpdateByForce(dt * 0.5f, forceK1[i]);
 	}
 
-	// std::cout << "x: " << force[5].x << ", y: " << force[5].y << ", z: " << force[5].z << std::endl;
+	std::vector<glm::vec3> forceK2(physicsSize);
+	CalculateForce(forceK2, k1);
+
 
 	for (size_t i = 0; i < physicsSize; i++)
 	{
-		centerPhysics[i].UpdateByForce(dt, force[i]);
+		k2[i].UpdateByForce(dt * 0.5f, forceK2[i]);
+	}
+	std::vector<glm::vec3> forceK3(physicsSize);
+	CalculateForce(forceK3, k2);
+
+	for (size_t i = 0; i < physicsSize; i++)
+	{
+		k3[i].UpdateByForce(dt, forceK3[i]);
+	}
+	std::vector<glm::vec3> forceK4(physicsSize);
+	CalculateForce(forceK4, k3);
+
+	
+	std::vector<glm::vec3> finalForce(physicsSize);
+	for (size_t i = 0; i < physicsSize; i++)
+	{
+		finalForce[i] = (forceK1[i] + (2.f * forceK2[i]) + (2.f * forceK3[i]) + forceK4[i]) / 6.f;
+	}
+
+
+	for (size_t i = 0; i < physicsSize; i++)
+	{
+		centerPhysics[i].UpdateByForce(dt, finalForce[i]);
 		centerMesh->SetVertex(i, centerPhysics[i].centerOfMass);
 	}
 
 	centerObjMesh->Init(centerMesh->getVertexBufferSize(), centerMesh->getVertexBuffer(), centerMesh->getVertexNormals(), centerMesh->getVertexUVs(),
 		centerMesh->GetBoneIDs(), centerMesh->GetBoneWeights(), centerMesh->getIndexBufferSize(), centerMesh->getIndexBuffer());
+}
+
+void AS1Scene::CalculateForce(std::vector<glm::vec3>& force, const std::vector<Physics>& physics)
+{
+	const size_t physicsSize = physics.size();
+	for (size_t i = 0; i < physicsSize - 2; i++)
+	{
+		const std::vector<unsigned int>& subjectVertices = subjectVertexIndices[i];
+
+		glm::vec3 mainCOM = physics[i].centerOfMass;
+		glm::vec3 mainVelocity = physics[i].linearVelocity;
+
+		const size_t subjectVertexSize = subjectVertices.size();
+		for (size_t subjectIndex = 0; subjectIndex < subjectVertexSize; ++subjectIndex)
+		{
+			glm::vec3 diffVector = mainCOM - physics[subjectVertices[subjectIndex]].centerOfMass;
+			const float length = glm::length(diffVector);
+			// spring force
+			force[i] += springConstant * diffVector / length * (initSpringLength[i][subjectIndex] - length);
+
+			// damping force
+			force[i] += dampingConstant * (physics[subjectVertices[subjectIndex]].linearVelocity - mainVelocity);
+		}
+
+		// gravity force
+		force[i] += physics[i].totalMass * gravityConstant * glm::vec3(0.f, -1.f, 0.f);
+	}
 }
 
 void AS1Scene::InitializeRelatedVertexIndexFocusOnFaces(unsigned int vertexCount, unsigned int faceCount, unsigned int* indices)

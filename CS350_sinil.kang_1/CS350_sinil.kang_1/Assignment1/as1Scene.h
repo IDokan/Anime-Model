@@ -83,6 +83,7 @@ private:
 	void DestroyAnimationMat4BlockNames(GLchar**& names, GLsizei& nameSizeRef);
 
 	void UpdatePhysics(float dt);
+	void CalculateForce(std::vector<glm::vec3>& force, const std::vector<Physics>& physics);
 
 private:
 	Mesh* sphereMesh;
